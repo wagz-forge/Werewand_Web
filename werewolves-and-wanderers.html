@@ -373,23 +373,21 @@
     <div class="side-section">
       <h3>Location</h3>
       <div id="room-name">—</div>
-      <!-- compass -->
+      <!-- compass: N/S/E/W cross, then U/D below -->
       <div class="exits-grid" id="exits-grid">
         <div class="exit-cell"></div>
-        <button class="exit-btn unavailable" id="btn-U" onclick="go('U')" title="Up">U</button>
+        <button class="exit-btn unavailable" id="btn-N" onclick="go('N')" title="North">N</button>
         <div class="exit-cell"></div>
         <button class="exit-btn unavailable" id="btn-W" onclick="go('W')" title="West">W</button>
         <div class="exit-cell" style="font-size:9px;color:#333;">✦</div>
         <button class="exit-btn unavailable" id="btn-E" onclick="go('E')" title="East">E</button>
         <div class="exit-cell"></div>
-        <button class="exit-btn unavailable" id="btn-D" onclick="go('D')" title="Down">D</button>
+        <button class="exit-btn unavailable" id="btn-S" onclick="go('S')" title="South">S</button>
         <div class="exit-cell"></div>
       </div>
-      <div style="display:flex;justify-content:center;gap:4px;margin-top:2px;">
-        <button class="exit-btn unavailable" style="width:80px;" id="btn-N" onclick="go('N')" title="North">N</button>
-      </div>
-      <div style="display:flex;justify-content:center;gap:4px;margin-top:2px;">
-        <button class="exit-btn unavailable" style="width:80px;" id="btn-S" onclick="go('S')" title="South">S</button>
+      <div style="display:flex;justify-content:center;gap:4px;margin-top:4px;">
+        <button class="exit-btn unavailable" style="width:40px;" id="btn-U" onclick="go('U')" title="Up">U</button>
+        <button class="exit-btn unavailable" style="width:40px;" id="btn-D" onclick="go('D')" title="Down">D</button>
       </div>
     </div>
 

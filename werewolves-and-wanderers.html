@@ -632,7 +632,6 @@ let G = {};
 function initState() {
   // Values from BASIC lines 2620-2820
   G = {
-    name: '',
     room: 6,          // RO=6 starting position
     strength: 100,    // STRENGTH=100
     wealth: 75,       // WEALTH=75
@@ -793,7 +792,7 @@ function enterRoom(r) {
   G.strength -= 5;
 
   if (G.strength < 10 && G.strength > 0) {
-    log(`warning, ${G.name}, your strength is running low.`, 'alert');
+    log(`warning — your strength is running low.`, 'alert');
   }
   if (G.strength < 1) {
     G.strength = 0;
@@ -1273,7 +1272,7 @@ function triggerDeath() {
     document.getElementById('end-screen').classList.add('visible');
     document.getElementById('end-msg').innerHTML = `
       <div class="end-title">you have died.</div>
-      <div style="color:var(--dim)">so sorry, ${G.name}.</div>
+      <div style="color:var(--dim)">so sorry.</div>
       <div class="score" style="margin-top:16px">score: ${calcScore()}</div>
       <div style="margin-top:6px;font-size:11px;color:var(--dim)">
         tally: ${G.tally} &nbsp;·&nbsp; strength: ${G.strength} &nbsp;·&nbsp;
@@ -1293,7 +1292,7 @@ function triggerWin() {
   logSep();
   log("you've done it!!", 'big');
   log("that was the exit from the castle.", 'alert');
-  log(`you have succeeded, ${G.name}!`, 'alert');
+  log("you have succeeded!", 'alert');
   log("you managed to get out of the castle.", 'dim');
   log("well done!", 'dim');
   setTimeout(() => {
@@ -1301,7 +1300,7 @@ function triggerWin() {
     document.getElementById('end-msg').innerHTML = `
       <div class="end-title">you've done it!!</div>
       <div>that was the exit from the castle.</div>
-      <div style="margin-top:6px">you have succeeded, ${G.name}!</div>
+      <div style="margin-top:6px">you managed to get out of the castle.</div>
       <div class="score" style="margin-top:16px">score: ${calcScore()}</div>
       <div style="margin-top:6px;font-size:11px;color:var(--dim)">
         tally: ${G.tally} &nbsp;·&nbsp; strength: ${G.strength} &nbsp;·&nbsp;
@@ -1332,31 +1331,11 @@ document.addEventListener('keydown', e => {
 // ══════════════════════════════════════════════
 function startGame() {
   document.getElementById('title-screen').style.display = 'none';
-  showOverlay('who are you?',
-    `<p>what is your name, explorer?</p>
-     <input class="overlay-input" id="name-input" type="text" maxlength="20" placeholder="your name..." autocomplete="off">`,
-    `<button class="overlay-btn" onclick="confirmName()">enter the castle</button>`
-  );
-  setTimeout(() => {
-    const ni = document.getElementById('name-input');
-    ni?.focus();
-    ni?.addEventListener('keydown', e => { if (e.key === 'Enter') confirmName(); });
-  }, 100);
-}
-
-function confirmName() {
-  const n = document.getElementById('name-input')?.value?.trim();
-  if (!n) return;
-  hideOverlay();
   initState();
-  G.name = n;
 
   log('werewolves and wanderers', 'big');
-  log(`good luck, ${G.name}.`, 'dim');
 
   setTimeout(() => {
-    // Start at room 6 but DON'T deduct strength on first entry (GOSUB 2600 then GOSUB 160 → first loop)
-    // We replicate the first call to the major handling routine
     G.room = 6;
     G.visited[6] = true;
     G.tally++;

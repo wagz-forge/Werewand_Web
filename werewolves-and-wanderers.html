@@ -1234,6 +1234,10 @@ function buyItem(key, cost) {
   const names = {light:'flaming torch',axe:'axe',sword:'sword',amulet:'magic amulet',suit:'suit of armor'};
   log(`you purchase ${names[key]}. wealth: $${G.wealth}.`, 'dim');
   hideOverlay(); fullRefresh();
+  if (key === 'light') {
+    logSep();
+    describeRoom(G.room);
+  }
   doShop();
 }
 

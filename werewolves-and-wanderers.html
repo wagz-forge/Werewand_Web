@@ -1152,12 +1152,31 @@ function doMagic() {
   if (G.dead || G.won) return;
   if (!G.amulet) { log("you have no amulet.", 'dim'); return; }
 
+  // Skip room 6 (entrance), 9 (lift, special-cased), 11 (win room)
   let dest;
   do { dest = Math.floor(Math.random() * 19) + 1; }
-  while (dest === 6 || dest === 11);
+  while (dest === 6 || dest === 9 || dest === 11);
 
+  // Set G.room immediately so all UI and input is in sync from this moment
+  G.room = dest;
+  G.visited[dest] = true;
+  G.strength -= 5;
+  G.tally++;
   log("the amulet flares with light... you are transported!", 'alert');
-  setTimeout(() => enterRoom(dest), 700);
+  fullRefresh();
+  if (G.strength < 10 && G.strength > 0) {
+    log("warning — your strength is running low.", 'alert');
+  }
+  if (G.strength < 1) {
+    G.strength = 0;
+    setTimeout(() => triggerDeath(), 600);
+    return;
+  }
+  setTimeout(() => {
+    logSep();
+    describeRoom(dest);
+    fullRefresh();
+  }, 300);
 }
 
 // ══════════════════════════════════════════════

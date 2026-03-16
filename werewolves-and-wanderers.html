@@ -832,6 +832,7 @@ function hideOverlay() {
 // ══════════════════════════════════════════════
 function enterRoom(r) {
   G.room = r;
+  const firstVisit = !G.visited[r];
   G.visited[r] = true;
   G.inBattle = false;
 
@@ -874,6 +875,14 @@ function enterRoom(r) {
     }, 1800);
     fullRefresh();
     return;
+  }
+
+  // Special first-visit message for room 1 — shown regardless of torch
+  if (r === 1 && firstVisit) {
+    logSep();
+    log("the front door closes behind you with a loud bang that echoes through the castle.", 'alert');
+    log("despite your best efforts it will not open again.", 'alert');
+    log("looks like you'll need to find another exit.", 'dim');
   }
 
   logSep();

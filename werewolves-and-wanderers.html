@@ -89,6 +89,30 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
+  /* ── ASCII MAP ── */
+  #map-section { padding: 14px 18px; border-bottom: 1px solid var(--panel-border); }
+  #map-section h3 {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--dim); margin-bottom: 10px;
+  }
+  #map-legend {
+    font-size: 9px; color: var(--dim); margin-bottom: 6px;
+    letter-spacing: 0.05em;
+  }
+  #ascii-map {
+    font-size: 9px;
+    line-height: 1.45;
+    letter-spacing: 0.05em;
+    white-space: pre;
+    color: var(--dim);
+    font-family: 'Share Tech Mono', monospace;
+  }
+  #ascii-map .r-unvisited { color: #1e1e1e; }
+  #ascii-map .r-visited   { color: #555; }
+  #ascii-map .r-current   { color: var(--accent); }
+  #ascii-map .r-conn      { color: #2a2a2a; }
+  #ascii-map .r-conn-vis  { color: #383838; }
+
   /* ── RIGHT PANEL: status + actions ── */
   #side-panel {
     width: 260px;
@@ -443,6 +467,13 @@
         <button class="exit-btn unavailable" style="width:40px;" id="btn-U" onclick="go('U')" title="Up">U</button>
         <button class="exit-btn unavailable" style="width:40px;" id="btn-D" onclick="go('D')" title="Down">D</button>
       </div>
+    </div>
+
+    <!-- Map -->
+    <div id="map-section">
+      <h3>Map</h3>
+      <div id="map-legend">■ current &nbsp; · visited &nbsp; ░ unseen</div>
+      <div id="ascii-map"></div>
     </div>
 
     <!-- Stats -->
@@ -813,12 +844,208 @@ function updateActionButtons() {
   document.getElementById('btn-magic').disabled  = !G.amulet;
 }
 
+// ══════════════════════════════════════════════
+// ASCII MAP
+// Each cell is 4 chars wide × 2 rows tall.
+// Three floors stacked: UPPER / GROUND / BASEMENT
+// Corridors drawn between adjacent cells.
+// ══════════════════════════════════════════════
+function renderMap() {
+  const el = document.getElementById('ascii-map');
+  if (!el) return;
+
+  // Grid layout: [row, col] positions for each room (0-indexed)
+  // Ground floor rows 3-6, Upper floor rows 0-2, Basement rows 7-9
+  // Cols 0-8
+  const POS = {
+  //  room: [row, col]
+     6: [5, 0],   // entrance
+     1: [5, 2],   // hallway
+     7: [3, 0],   // kitchen
+     8: [4, 0],   // store room
+     2: [4, 2],   // audience chamber
+     3: [3, 2],   // great hall
+     4: [2, 4],   // meeting room
+     5: [4, 4],   // inner hallway
+    10: [5, 4],   // rear vestibule
+    11: [5, 6],   // exit
+     9: [3, 4],   // lift
+    19: [3, 6],   // lift anteroom
+    16: [3, 8],   // treasury
+    12: [6, 6],   // dungeon
+    13: [6, 4],   // guardroom
+    14: [1, 6],   // master bedroom
+    15: [2, 6],   // upper hallway
+    17: [1, 8],   // chambermaids' bedroom
+    18: [0, 8],   // dressing chamber
+  };
+
+  const ROWS = 7;
+  const COLS = 9;
+  // Each grid cell = 4 chars wide, 2 rows tall in display
+  // We'll build a char grid of (ROWS*2) × (COLS*4+1)
+  const DH = ROWS * 2;    // display height
+  const DW = COLS * 4 + 1; // display width
+
+  // Init display grid with spaces
+  const grid = Array.from({length: DH}, () => Array(DW).fill(' '));
+
+  // Helper: write string at display position
+  function write(dr, dc, str, cls) {
+    for (let i = 0; i < str.length; i++) {
+      if (dc + i < DW && dr < DH) {
+        grid[dr][dc + i] = { ch: str[i], cls };
+      }
+    }
+  }
+
+  // States for rooms
+  function roomState(r) {
+    if (G.room === r) return 'current';
+    if (G.visited[r]) return 'visited';
+    return 'unvisited';
+  }
+
+  // Draw each room as a 3-char label in a [   ] box
+  for (const [r, [row, col]] of Object.entries(POS)) {
+    const id = parseInt(r);
+    const dr = row * 2;
+    const dc = col * 4;
+    const state = roomState(id);
+    const cls = state === 'current'   ? 'r-current'
+               : state === 'visited'  ? 'r-visited'
+               : 'r-unvisited';
+
+    if (state === 'unvisited') {
+      write(dr,   dc, '░░░', cls);
+      write(dr+1, dc, '░░░', cls);
+    } else {
+      const label = id === 11 ? 'EXT' : String(id).padStart(2,' ');
+      write(dr,   dc, '╔═╗', cls);
+      write(dr+1, dc, `╚${label.length===2?label:label[0]+label[1]}╝`, cls);
+    }
+  }
+
+  // Draw corridors between connected rooms
+  // For each horizontal/vertical connection, draw a line between cells
+  const CONNECTIONS = [
+    // [roomA, roomB, direction] — 'h'=horizontal, 'v'=vertical
+    [6,  1,  'h'],  // entrance — hallway
+    [1,  2,  'v'],  // hallway — audience (south)
+    [2,  3,  'v'],  // audience — great hall (south) — room2 S→3
+    [2,  3,  'h'],  // audience — great hall (east) — room2 E→3 (same room, col+0 → col+0 since same col)
+    [3,  5,  'h'],  // great hall — inner hallway
+    [4,  5,  'v'],  // meeting room — inner hallway (south)
+    [5, 10,  'v'],  // inner hallway — rear vestibule (south)
+    [10, 11, 'h'],  // rear vestibule — exit
+    [7,  8,  'v'],  // kitchen — store room
+    [8,  2,  'h'],  // store room — audience chamber
+    [8, 10,  'v'],  // store room — rear vestibule (south of 8 = 10)
+    [9, 19,  'h'],  // lift — lift anteroom
+    [19,16,  'h'],  // lift anteroom — treasury
+    [9,  5,  'v'],  // lift — inner hallway (north of 5 = 9... row 3 vs row 4)
+    [12, 13, 'h'],  // dungeon — guardroom
+    [13,  5, 'stair'], // guardroom up to inner hallway
+    [14, 15, 'v'],  // master bedroom — upper hallway (south)
+    [15,  5, 'stair'], // upper hallway down to inner hallway
+    [14, 17, 'h'],  // master bedroom — chambermaids
+    [17, 18, 'v'],  // chambermaids — dressing chamber (north)
+    [16, 17, 'v'],  // treasury — chambermaids (north of 17 = 16... row 3 vs row 1)
+    [9,  8,  'stair'], // lift down to store room
+    [5, 13,  'stair'], // inner hallway down to guardroom
+    [15, 12, 'stair'], // upper hallway - dungeon connection via stairwell visual
+  ];
+
+  // Draw horizontal corridor between two horizontally adjacent rooms
+  function drawH(r1, r2) {
+    const [row1, col1] = POS[r1];
+    const [row2, col2] = POS[r2];
+    if (row1 !== row2) return;
+    const minCol = Math.min(col1, col2);
+    const maxCol = Math.max(col1, col2);
+    const dr = row1 * 2 + 1; // corridor on bottom row of cell
+    const vis = roomState(r1) !== 'unvisited' && roomState(r2) !== 'unvisited';
+    const cls = vis ? 'r-conn-vis' : 'r-conn';
+    for (let c = minCol + 1; c < maxCol; c++) {
+      const dc = c * 4;
+      write(dr, dc,   '───', cls);
+    }
+    // connectors on room edges
+    if (vis) {
+      const dc1 = (minCol) * 4 + 2;
+      const dc2 = (maxCol) * 4;
+      write(dr, dc1 + 1, '─', cls);
+      write(dr, dc2 - 1, '─', cls);
+    }
+  }
+
+  // Draw vertical corridor between two vertically adjacent rooms
+  function drawV(r1, r2) {
+    const [row1, col1] = POS[r1];
+    const [row2, col2] = POS[r2];
+    if (col1 !== col2) return;
+    const minRow = Math.min(row1, row2);
+    const maxRow = Math.max(row1, row2);
+    const dc = col1 * 4 + 1; // corridor on second char of cell
+    const vis = roomState(r1) !== 'unvisited' && roomState(r2) !== 'unvisited';
+    const cls = vis ? 'r-conn-vis' : 'r-conn';
+    for (let r = minRow + 1; r < maxRow; r++) {
+      write(r * 2,     dc, '│', cls);
+      write(r * 2 + 1, dc, '│', cls);
+    }
+    // Connect to room boxes
+    if (vis) {
+      write(minRow * 2 + 2, dc, '│', cls);
+      write(maxRow * 2 - 1, dc, '│', cls);
+    }
+  }
+
+  // Draw stairwell markers
+  function drawStair(r1, r2) {
+    const [row1, col1] = POS[r1];
+    const vis = roomState(r1) !== 'unvisited';
+    const cls = vis ? 'r-conn-vis' : 'r-conn';
+    write(row1 * 2 + 1, col1 * 4 + 2, vis ? '↕' : ' ', cls);
+  }
+
+  for (const [r1, r2, type] of CONNECTIONS) {
+    if (!POS[r1] || !POS[r2]) continue;
+    if (type === 'h') drawH(r1, r2);
+    else if (type === 'v') drawV(r1, r2);
+    else if (type === 'stair') drawStair(r1, r2);
+  }
+
+  // Render to HTML with spans for colouring
+  let html = '';
+  for (let r = 0; r < DH; r++) {
+    let rowHtml = '';
+    let currentCls = null;
+    let buf = '';
+    for (let c = 0; c < DW; c++) {
+      const cell = grid[r][c];
+      const ch  = typeof cell === 'object' ? cell.ch  : cell;
+      const cls = typeof cell === 'object' ? cell.cls : null;
+      if (cls !== currentCls) {
+        if (buf) rowHtml += currentCls ? `<span class="${currentCls}">${buf}</span>` : buf;
+        buf = '';
+        currentCls = cls;
+      }
+      buf += ch;
+    }
+    if (buf) rowHtml += currentCls ? `<span class="${currentCls}">${buf}</span>` : buf;
+    html += rowHtml + '\n';
+  }
+
+  el.innerHTML = html;
+}
+
 function fullRefresh() {
   updateStats();
   updateInventory();
   updateExits();
   updateRoomName();
   updateActionButtons();
+  renderMap();
 }
 
 // ══════════════════════════════════════════════

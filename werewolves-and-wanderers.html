@@ -726,6 +726,12 @@ function initState() {
   // Fixed big treasures (lines 2970-2980)
   G.roomContents[4]  = 100 + Math.floor(Math.random() * 100); // meeting room $100-$199
   G.roomContents[16] = 100 + Math.floor(Math.random() * 100); // treasury $100-$199
+
+  // Scavengeable food in kitchen (7) and store room (8) — 1 to 5 units each
+  G.foodRooms = {
+    7: Math.floor(Math.random() * 5) + 1,
+    8: Math.floor(Math.random() * 5) + 1,
+  };
 }
 
 // ══════════════════════════════════════════════
@@ -798,10 +804,11 @@ function updateActionButtons() {
   const hasMonster  = k !== undefined && k < 0;
   // Treasure: original uses K>9 (value > 9) to distinguish from monsters
   const hasTreasure = k !== undefined && k > 9;
+  const hasFood     = G.foodRooms && !!G.foodRooms[G.room];
 
   document.getElementById('btn-fight').disabled  = !hasMonster || G.inBattle;
   document.getElementById('btn-run').disabled    = !hasMonster || G.inBattle;
-  document.getElementById('btn-pickup').disabled = !hasTreasure;
+  document.getElementById('btn-pickup').disabled = !hasTreasure && !hasFood;
   document.getElementById('btn-eat').disabled    = G.food <= 0;
   document.getElementById('btn-magic').disabled  = !G.amulet;
 }
@@ -927,6 +934,12 @@ function describeRoom(r) {
         }, d);
       }
     }
+  }
+
+  // Show food hint for kitchen and store room
+  const scavenge = G.foodRooms && G.foodRooms[r];
+  if (scavenge) {
+    setTimeout(() => log(`you spot ${scavenge} unit${scavenge > 1 ? 's' : ''} of food you could take.`, 'alert'), lines_delay(descFn) + 120);
   }
 }
 
@@ -1168,10 +1181,21 @@ function fleeDir(dir) {
 }
 
 // ══════════════════════════════════════════════
-// PICK UP TREASURE — lines 2350-2400
+// PICK UP TREASURE / FOOD — lines 2350-2400
 // ══════════════════════════════════════════════
 function doPickup() {
   if (G.dead || G.won) return;
+
+  // Check for scavengeable food first (rooms 7 and 8)
+  const scavenge = G.foodRooms && G.foodRooms[G.room];
+  if (scavenge) {
+    G.food += scavenge;
+    log(`you gather ${scavenge} unit${scavenge > 1 ? 's' : ''} of food. provisions: ${G.food}.`, 'alert');
+    delete G.foodRooms[G.room];
+    fullRefresh();
+    return;
+  }
+
   const k = G.roomContents[G.room];
   // Line 2360: K<10 means no treasure (treasure values are >9)
   if (k === undefined || k < 10) { log("there is no treasure to pick up.", 'dim'); return; }

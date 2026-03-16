@@ -339,6 +339,42 @@
     text-transform: uppercase; color: var(--dim);
     margin-bottom: 6px;
   }
+
+  /* high score table */
+  #high-scores {
+    margin-top: 32px;
+    width: 520px;
+    max-width: 92vw;
+    text-align: left;
+  }
+  #high-scores h3 {
+    font-size: 10px; letter-spacing: 0.25em;
+    text-transform: uppercase; color: var(--dim);
+    margin-bottom: 12px; text-align: center;
+  }
+  #scores-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+  #scores-table th {
+    color: var(--dim); font-weight: normal;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    font-size: 10px; padding: 3px 6px 6px;
+    border-bottom: 1px solid #222;
+    text-align: right;
+  }
+  #scores-table th:first-child { text-align: left; }
+  #scores-table td {
+    padding: 5px 6px; color: var(--fg);
+    border-bottom: 1px solid #161616;
+    text-align: right;
+  }
+  #scores-table td:first-child { text-align: left; color: var(--dim); font-size: 10px; }
+  #scores-table tr.current-run td { color: var(--accent); }
+  #scores-table tr.current-run td:first-child { color: #777; }
+  .outcome-won  { color: var(--fg); }
+  .outcome-died { color: #444; }
 </style>
 </head>
 <body>
@@ -355,6 +391,24 @@
 <!-- END SCREEN -->
 <div id="end-screen">
   <div id="end-msg"></div>
+  <div id="high-scores">
+    <h3>── high scores ──</h3>
+    <table id="scores-table">
+      <thead>
+        <tr>
+          <th>date</th>
+          <th>outcome</th>
+          <th>score</th>
+          <th>tally</th>
+          <th>str</th>
+          <th>wealth</th>
+          <th>food</th>
+          <th>kills</th>
+        </tr>
+      </thead>
+      <tbody id="scores-body"></tbody>
+    </table>
+  </div>
   <button class="restart-btn" onclick="restartGame()">play again</button>
 </div>
 
@@ -1282,6 +1336,60 @@ function doTally() {
 }
 
 // ══════════════════════════════════════════════
+// HIGH SCORES — persisted in localStorage
+// ══════════════════════════════════════════════
+const HS_KEY = 'werewand_scores';
+const HS_MAX = 10;
+
+function loadScores() {
+  try { return JSON.parse(localStorage.getItem(HS_KEY)) || []; }
+  catch(e) { return []; }
+}
+
+function saveScore(outcome) {
+  const entry = {
+    date:     new Date().toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'}),
+    outcome:  outcome,          // 'escaped' or 'died'
+    score:    calcScore(),
+    tally:    G.tally,
+    strength: G.strength,
+    wealth:   G.wealth,
+    food:     G.food,
+    mk:       G.mk,
+  };
+  const scores = loadScores();
+  scores.push(entry);
+  scores.sort((a,b) => b.score - a.score);
+  scores.splice(HS_MAX); // keep top 10
+  try { localStorage.setItem(HS_KEY, JSON.stringify(scores)); } catch(e) {}
+  return entry;
+}
+
+function renderScores(currentEntry) {
+  const scores = loadScores();
+  const tbody = document.getElementById('scores-body');
+  if (!scores.length) { tbody.innerHTML = '<tr><td colspan="8" style="color:#333;text-align:center;padding:12px">no scores yet.</td></tr>'; return; }
+  tbody.innerHTML = scores.map(s => {
+    const isCurrent = currentEntry &&
+      s.date === currentEntry.date && s.score === currentEntry.score &&
+      s.tally === currentEntry.tally && s.mk === currentEntry.mk;
+    const outcomeHtml = s.outcome === 'escaped'
+      ? `<span class="outcome-won">escaped</span>`
+      : `<span class="outcome-died">died</span>`;
+    return `<tr class="${isCurrent ? 'current-run' : ''}">
+      <td>${s.date}</td>
+      <td style="text-align:right">${outcomeHtml}</td>
+      <td>${s.score}</td>
+      <td>${s.tally}</td>
+      <td>${s.strength}</td>
+      <td>$${s.wealth}</td>
+      <td>${s.food}</td>
+      <td>${s.mk}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
 // DEATH — lines 2300-2330
 // ══════════════════════════════════════════════
 function triggerDeath() {
@@ -1292,6 +1400,7 @@ function triggerDeath() {
   logSep();
   log("you have died.........", 'danger');
   setTimeout(() => {
+    const entry = saveScore('died');
     document.getElementById('end-screen').classList.add('visible');
     document.getElementById('end-msg').innerHTML = `
       <div class="end-title">you have died.</div>
@@ -1301,6 +1410,7 @@ function triggerDeath() {
         tally: ${G.tally} &nbsp;·&nbsp; strength: ${G.strength} &nbsp;·&nbsp;
         wealth: $${G.wealth} &nbsp;·&nbsp; food: ${G.food} &nbsp;·&nbsp; monsters: ${G.mk}
       </div>`;
+    renderScores(entry);
   }, 1200);
 }
 
@@ -1319,6 +1429,7 @@ function triggerWin() {
   log("you managed to get out of the castle.", 'dim');
   log("well done!", 'dim');
   setTimeout(() => {
+    const entry = saveScore('escaped');
     document.getElementById('end-screen').classList.add('visible');
     document.getElementById('end-msg').innerHTML = `
       <div class="end-title">you've done it!!</div>
@@ -1329,6 +1440,7 @@ function triggerWin() {
         tally: ${G.tally} &nbsp;·&nbsp; strength: ${G.strength} &nbsp;·&nbsp;
         wealth: $${G.wealth} &nbsp;·&nbsp; food: ${G.food} &nbsp;·&nbsp; monsters: ${G.mk}
       </div>`;
+    renderScores(entry);
   }, 2500);
 }
 

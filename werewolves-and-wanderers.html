@@ -1098,6 +1098,11 @@ function runBattle(ff, monsterName, roomKey) {
         delete G.roomContents[G.room];
         log(`and you managed to kill the ${monsterName.toLowerCase()}!`, 'alert', t);
         log(`monsters killed: ${G.mk}`, 'dim', t + 100);
+        // Ice dragon rewards the player with a magic amulet
+        if (roomKey === -4 && !G.amulet) {
+          G.amulet = true;
+          log("as the ice dragon falls, a magic amulet rolls from its hoard to your feet.", 'alert', t + 250);
+        }
       } else {
         // Monster wins (line 960)
         G.strength = Math.floor(G.strength / 2);

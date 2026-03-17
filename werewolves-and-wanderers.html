@@ -89,6 +89,31 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
+  /* ── ASCII MAP — temporarily disabled ──
+  #map-section { padding: 14px 18px; border-bottom: 1px solid var(--panel-border); }
+  #map-section h3 {
+    font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--dim); margin-bottom: 10px;
+  }
+  #map-legend {
+    font-size: 9px; color: var(--dim); margin-bottom: 6px;
+    letter-spacing: 0.05em;
+  }
+  #ascii-map {
+    font-size: 9px;
+    line-height: 1.45;
+    letter-spacing: 0.05em;
+    white-space: pre;
+    color: var(--dim);
+    font-family: 'Share Tech Mono', monospace;
+  }
+  #ascii-map .r-unvisited { color: #1e1e1e; }
+  #ascii-map .r-visited   { color: #555; }
+  #ascii-map .r-current   { color: var(--accent); }
+  #ascii-map .r-conn      { color: #2a2a2a; }
+  #ascii-map .r-conn-vis  { color: #383838; }
+  ── end map CSS ── */
+
   /* ── RIGHT PANEL: status + actions ── */
   #side-panel {
     width: 260px;
@@ -445,6 +470,14 @@
       </div>
     </div>
 
+    <!-- Map — temporarily disabled
+    <div id="map-section">
+      <h3>Map</h3>
+      <div id="map-legend">■ current &nbsp; · visited &nbsp; ░ unseen</div>
+      <div id="ascii-map"></div>
+    </div>
+    -->
+
     <!-- Stats -->
     <div class="side-section">
       <h3>Status</h3>
@@ -570,50 +603,65 @@ const ROOM_NAMES = [
   'the lift anteroom',
 ];
 
-// Room descriptions — faithful to BASIC source
+// Room descriptions — updated from revised BASIC source
 const ROOM_DESC = [
   null,
   // 1 hallway
-  () => [
-    "you are in the hallway.",
-    "there is a door to the south.",
-    "through windows to the north you can see a secret herb garden.",
-  ],
+  () => {
+    const lines = ["you are in the hallway."];
+    if (Math.random() > 0.4) lines.push("from the dust on the ground you can tell no-one has walked here for a long, long time.");
+    lines.push("there is a door to the south.");
+    lines.push("through windows to the north you can see a secret herb garden.");
+    return lines;
+  },
   // 2 audience chamber
-  () => [
-    "this is the audience chamber.",
-    "there is a window to the west. by looking to the right through it you can see the entrance to the castle.",
-    "doors leave this room to the north, east and south.",
-  ],
-  // 3 great hall
-  () => [
-    "you are in the great hall, an L-shaped room.",
-    "there are doors to the east and to the north.",
-    "in the alcove is a door to the west.",
-  ],
+  () => {
+    const lines = ["this is the audience chamber."];
+    if (Math.random() > 0.4) lines.push("the faded tapestries on the wall only hint at the splendor which this room once had.");
+    lines.push("there is a window to the west. by looking to the right through it you can see the entrance to the castle.");
+    return lines;
+  },
+  // 3 great hall (L-shaped)
+  () => {
+    const lines = [
+      "you are in the great hall, an L-shaped room.",
+      "there are two doors in this room.",
+      "the wood panels are warped and faded...",
+    ];
+    if (Math.random() > 0.4) lines.push("as you stand there, you hear a mouse scamper along the floor behind you... you whirl around... but see nothing!");
+    return lines;
+  },
   // 4 monarch's meeting room
-  () => [
-    "this is the monarch's private meeting room.",
-    "there is a single exit to the south.",
-  ],
+  () => {
+    const lines = ["this is the monarch's private meeting room."];
+    if (Math.random() < 0.4) lines.push("the echo of ancient plotting and wrangling hangs heavy in the musty air...");
+    lines.push("there is a single exit to the south.");
+    return lines;
+  },
   // 5 inner hallway
-  () => [
-    "this inner hallway contains a door to the north, and one to the west, and a circular stairwell passes through the room.",
-    "you can see an ornamental lake through the windows to the south.",
-  ],
+  () => {
+    const lines = [
+      "this inner hallway contains a door to the north, and one to the west, and a circular stairwell passes through the room.",
+    ];
+    if (Math.random() > 0.6) lines.push("the room is small, and unfriendly.");
+    lines.push("you can see an ornamental lake through the windows to the south.");
+    return lines;
+  },
   // 6 entrance
-  () => [
-    "you are at the entrance to a forbidding-looking stone castle. you are facing east.",
-  ],
+  () => ["you are at the entrance to a forbidding-looking stone castle. you are facing east."],
   // 7 kitchen
-  () => [
-    "this is the castle's kitchen. through windows in the north wall you can see a secret herb garden.",
-    "a door leaves the kitchen to the south.",
-  ],
+  () => {
+    const lines = [
+      "this is the castle's kitchen. through windows in the north wall you can see a secret herb garden.",
+      "it has been many years since meals were prepared for the monarch and the court in this kitchen.......",
+    ];
+    if (Math.random() > 0.4) lines.push("...a rat scurries across the floor...");
+    return lines;
+  },
   // 8 store room
   () => [
     "you are in the store room, amidst spices, vegetables, and vast sacks of flour and other provisions.",
-    "there is a door to the north and one to the south.",
+    "the air is thick with spice and curry fumes...",
   ],
   // 9 lift (handled specially in enterRoom)
   () => ["you have entered the lift..."],
@@ -626,14 +674,19 @@ const ROOM_DESC = [
   // 11 — empty, the exit (win condition triggered on entry)
   () => [],
   // 12 dungeon
-  () => [
-    "you are in the dank, dark dungeon.",
-    "there is a single exit, a small hole in the wall towards the west.",
-  ],
+  () => {
+    const lines = [
+      "you are in the dank, dark dungeon.",
+      "there is a single exit, a small hole in the wall towards the west.",
+    ];
+    if (Math.random() > 0.4) lines.push("...a hollow, dry chuckle is heard from the guard room....");
+    return lines;
+  },
   // 13 guardroom
   () => [
     "you are in the prison guardroom, in the basement of the castle.",
     "the stairwell ends in this room. there is one other exit, a small hole in the east wall.",
+    "the air is damp and unpleasant... a chill wind rushes into the room from gaps in the stone at the top of the walls.",
   ],
   // 14 master bedroom
   () => [
@@ -642,19 +695,24 @@ const ROOM_DESC = [
     "there are doors to the east and to the south....",
   ],
   // 15 upper hallway
-  () => [
-    "this is the L-shaped upper hallway.",
-    "to the north is a door, and there is a stairwell in the hall as well.",
-    "you can see the lake through the south windows.",
-  ],
+  () => {
+    const lines = ["this is the L-shaped upper hallway."];
+    if (Math.random() > 0.4) lines.push("...a moth flits across near the ceiling...");
+    lines.push("to the north is a door, and there is a stairwell in the hall as well.");
+    lines.push("you can see the lake through the south windows.");
+    return lines;
+  },
   // 16 treasury
-  () => [
-    "this room was used as the castle treasury in by-gone years....",
-    "there are no windows, just exits to the north and to the east.",
-  ],
+  () => {
+    const lines = ["this room was used as the castle treasury in by-gone years...."];
+    if (Math.random() > 0.4) lines.push("...a spider scampers down the wall........");
+    lines.push("there are no windows, just exits.");
+    return lines;
+  },
   // 17 chambermaids' bedroom
   () => [
     "ooooh... you are in the chambermaids' bedroom.",
+    "faint perfume still hangs in the air...",
     "there is an exit to the west and a door to the south....",
   ],
   // 18 dressing chamber
@@ -665,17 +723,19 @@ const ROOM_DESC = [
   ],
   // 19 lift anteroom
   () => [
-    "this is the small room outside the castle lift, which can be entered by a door to the north.",
-    "another door leads to the west. you can see the lake through the southern windows.",
+    "this is the small room outside the castle lift.",
+    "you can see the lake through the southern windows.",
   ],
 ];
 
-// Monsters: type -1..-4 per BASIC source
+// Monsters: type -1..-6 per updated BASIC source (lines 380-416)
 const MONSTERS = {
-  '-1': ["Ferocious Werewolf",   5],
-  '-2': ["Fanatical Fleshgorger",10],
-  '-3': ["Maloventy Maldemer",   15],
+  '-1': ["Ferocious Werewolf",    5],
+  '-2': ["Fanatical Fleshgorger", 10],
+  '-3': ["Maloventy Maldemer",    15],
   '-4': ["Devastating Ice-Dragon",20],
+  '-5': ["Horrendous Hodgepodger",25],
+  '-6': ["Ghastly Gruesomeness",  30],
 };
 
 // ══════════════════════════════════════════════
@@ -714,13 +774,12 @@ function initState() {
     treasureCount++;
   }
 
-  // ALLOT MONSTERS — 4 random rooms (lines 2920-2960)
-  // Types -1 to -4; rooms 6 and 11 excluded; no double-allotting
+  // ALLOT MONSTERS — 4 random rooms, types -1 to -6
   for (let j = 1; j <= 4; j++) {
     let m;
     do { m = Math.floor(Math.random() * 18) + 1; }
     while (m === 6 || m === 11 || G.roomContents[m]);
-    G.roomContents[m] = -j;
+    G.roomContents[m] = -(Math.floor(Math.random() * 6) + 1); // -1 to -6
   }
 
   // Fixed big treasures (lines 2970-2980)
@@ -813,12 +872,293 @@ function updateActionButtons() {
   document.getElementById('btn-magic').disabled  = !G.amulet;
 }
 
+// ══════════════════════════════════════════════
+// ASCII MAP
+// Row increases downward (south). Col increases rightward (east).
+// Room 3 is L-shaped: it occupies [6,1] AND [5,2], connected to room 2
+// on both its south side (col 1) and east side (col 2, row 5).
+// ══════════════════════════════════════════════
+/* ── renderMap — temporarily disabled ──
+function renderMap() {
+  const el = document.getElementById('ascii-map');
+  if (!el) return;
+
+  //  Verified spatial layout (row=0 is northernmost):
+  //
+  //  col:  0     1     2     3     4     5
+  //  r0:  [7]
+  //  r1:  [8]               [9]  [19]  [16]
+  //  r2:  [10]  [11]              [14]  [17]
+  //  r3:                          [15]  [18]
+  //  r4:  [6]   [1]         [↕5→15]
+  //  r5:        [2]   [4]
+  //  r6:        [3L]  [3R]←L-shape spans cols 1+2
+  //  r7:              [13]  [12]
+  //
+  // Room 3 is drawn wide across [6,1] and [6,2].
+  // Room 2 connects south to [6,1] and east to [5,2] (which is room 3's "east arm").
+
+  const POS = {
+     7: [0, 0],
+     8: [1, 0],
+    10: [2, 0],
+    11: [2, 1],
+     6: [4, 0],
+     1: [4, 1],
+     2: [5, 1],
+  // 3 is L-shaped — drawn separately below, anchored at [6,1]
+     4: [5, 2],
+     5: [6, 2],  // inner hallway — east arm of room 3
+    13: [7, 2],
+    12: [7, 3],
+     9: [1, 2],
+    19: [1, 3],
+    16: [1, 4],
+    15: [3, 3],
+    14: [2, 3],
+    17: [2, 4],
+    18: [1, 5],  // dressing chamber — but 18→S→17 so 18 is N of 17 [2,4] → [1,4]
+  };
+  // Fix 18: N of 17 which is at [2,4], so 18 at [1,4] — but 16 is at [1,4]. Shift right.
+  // 16→E→19 means 19 is E of 16. 9→S→19 means 19 is S of 9.
+  // Let's re-anchor upper-right cluster carefully:
+  //   9  at [1,2], 19 at [2,2]? But 10 is at [2,0] and 11 at [2,1]...
+  //   Move lift cluster to right side:
+  //   9 at [1,3], 19 at [2,3]? But 14 at [2,3]...
+  // Cleanest: put lift cluster above meeting-room column:
+  //   9  [1,2], 19 [1,3], 16 [1,4]   (all in row 1, going east)
+  //   upper floor: 15[3,3], 14[2,3]  ← 14 N of 15; 17[2,4] E of 14; 18[1,4] N of 17
+  //   But 16 is also at [1,4] — clash with 18.
+  // Solution: push upper floor one column further right:
+  //   15[3,4], 14[2,4], 17[2,5], 18[1,5]
+  //   And lift cluster: 9[1,2], 19[1,3], 16[1,4] — 16 N→17[2,5]? Non-adjacent, skip V corridor.
+  //   16→N→17: 17 must be directly N of 16 OR we just show the connection with a bent line.
+  //   Since the map is schematic not geographic, let's just note the stair symbol.
+  // FINAL definitive — no clashes:
+  const FINAL = {
+     7: [0, 0],   // kitchen
+     8: [1, 0],   // store room       S of kitchen
+    10: [2, 0],   // rear vestibule   S of store room
+    11: [2, 1],   // exit             E of rear vestibule
+     6: [4, 0],   // entrance
+     1: [4, 1],   // hallway          E of entrance
+     2: [5, 1],   // audience         S of hallway
+  // room 3 L-shape at [6,1] and [6,2] — handled specially
+     4: [5, 2],   // meeting room     E of audience / N of inner hallway
+     5: [6, 2],   // inner hallway    S of meeting room / E arm of room 3
+    13: [7, 2],   // guardroom        S of inner hallway
+    12: [7, 3],   // dungeon          E of guardroom
+  // lift column
+     9: [2, 2],   // lift
+    19: [2, 3],   // lift anteroom    E of lift
+  // upper floor — 18 above 17 above 16, stacked in col 4
+    18: [2, 4],   // dressing chamber (northernmost)
+    17: [3, 4],   // chambermaids'    S of dressing chamber
+    16: [4, 4],   // treasury         S of chambermaids
+    14: [3, 3],   // master bedroom   W of chambermaids
+    15: [4, 3],   // upper hallway    S of master bedroom
+  };
+
+  const ROWS = 8;
+  const COLS = 5;
+  const CW = 5;  // cell width in chars
+  const CH = 2;  // cell height in display rows
+  const DH = ROWS * CH;
+  const DW = COLS * CW + 1;
+
+  const grid = Array.from({length: DH}, () => Array(DW).fill({ch:' ', cls:null}));
+
+  function write(dr, dc, str, cls) {
+    for (let i = 0; i < str.length; i++) {
+      const c = dc + i;
+      if (c >= 0 && c < DW && dr >= 0 && dr < DH)
+        grid[dr][c] = { ch: str[i], cls };
+    }
+  }
+
+  function roomState(id) {
+    if (G.room === id) return 'current';
+    if (G.visited[id]) return 'visited';
+    return 'unvisited';
+  }
+
+  function cls3(state) {
+    return state === 'current' ? 'r-current' : state === 'visited' ? 'r-visited' : 'r-unvisited';
+  }
+
+  // Draw a standard single-cell room box
+  function drawRoom(id, row, col) {
+    const dr = row * CH;
+    const dc = col * CW;
+    const state = roomState(id);
+    const cls = cls3(state);
+    if (state === 'unvisited') {
+      write(dr,   dc, ' ░░░ ', cls);
+      write(dr+1, dc, ' ░░░ ', cls);
+    } else {
+      const lbl = id === 11 ? 'EX' : String(id).padStart(2,' ');
+      write(dr,   dc, ' ╔═╗ ', cls);
+      write(dr+1, dc, ` ╚${lbl}╝ `, cls);
+    }
+  }
+
+  // Draw room 3 as an L-shape spanning [r,c] (south cell) and [r-1,c+1] (east cell)
+  // The L occupies the bottom-left and top-right of a 2×2 area.
+  //   [r-1, c]  = empty corner
+  //   [r-1, c+1]= east arm  (room 2 →E leads here)
+  //   [r,   c]  = south arm (room 2 →S leads here)
+  //   [r,   c+1]= inner hallway (room 5)
+  function drawRoomL(id, row, col) {
+    const state = roomState(id);
+    const cls = cls3(state);
+    // South arm at [row, col]
+    const dr0 = row * CH;
+    const dc0 = col * CW;
+    // East arm at [row-1, col+1]
+    const dr1 = (row-1) * CH;
+    const dc1 = (col+1) * CW;
+
+    if (state === 'unvisited') {
+      write(dr0,   dc0, ' ░░░ ', cls);
+      write(dr0+1, dc0, ' ░░░ ', cls);
+      write(dr1,   dc1, ' ░░░ ', cls);
+      write(dr1+1, dc1, ' ░░░ ', cls);
+    } else {
+      const lbl = String(id).padStart(2,' ');
+      // South arm — top half open, bottom has label
+      write(dr0,   dc0, ' ╔═╗ ', cls);
+      write(dr0+1, dc0, ` ╚${lbl}╝ `, cls);
+      // East arm — just top box (shares label context)
+      write(dr1,   dc1, ' ╔═╗ ', cls);
+      write(dr1+1, dc1, ` ╚ 3╝ `, cls);
+      // Connect the two arms with a corner piece
+      write(dr0,   dc0+CW,   '╗', cls);   // top-right of south arm
+      write(dr0,   dc1,      '╚', cls);   // bottom-left of east arm
+    }
+  }
+
+  // Draw all standard rooms
+  for (const [r, [row, col]] of Object.entries(FINAL)) {
+    drawRoom(parseInt(r), row, col);
+  }
+  // Draw L-shaped room 3
+  drawRoomL(3, 6, 1);
+
+  // ── CORRIDORS ──
+  // hCorridor: two rooms on same row, adjacent or with gap
+  function hCorridor(ra, rb) {
+    const pa = FINAL[ra], pb = FINAL[rb];
+    if (!pa || !pb || pa[0] !== pb[0]) return;
+    const dr = pa[0] * CH + 1;
+    const lc = Math.min(pa[1], pb[1]);
+    const rc = Math.max(pa[1], pb[1]);
+    const vis = roomState(ra) !== 'unvisited' && roomState(rb) !== 'unvisited';
+    const cls = vis ? 'r-conn-vis' : 'r-conn';
+    for (let c = lc; c <= rc; c++) {
+      const dc = c * CW;
+      if (c === lc)       write(dr, dc + CW - 1, '─', cls);
+      else if (c === rc)  write(dr, dc,           '─', cls);
+      else { write(dr, dc, '─────', cls); }
+    }
+  }
+
+  // vCorridor: two rooms in same column
+  function vCorridor(ra, rb) {
+    const pa = FINAL[ra], pb = FINAL[rb];
+    if (!pa || !pb || pa[1] !== pb[1]) return;
+    const dc = pa[1] * CW + 2;
+    const tr = Math.min(pa[0], pb[0]);
+    const br = Math.max(pa[0], pb[0]);
+    const vis = roomState(ra) !== 'unvisited' && roomState(rb) !== 'unvisited';
+    const cls = vis ? 'r-conn-vis' : 'r-conn';
+    write(tr * CH + 2,  dc, '│', cls);
+    for (let r = tr + 1; r < br; r++) {
+      write(r * CH,     dc, '│', cls);
+      write(r * CH + 1, dc, '│', cls);
+    }
+    write(br * CH - 1,  dc, '│', cls);
+  }
+
+  // Special connector: room 2 south → room 3 south arm (same col, draw short segment)
+  function v2to3south() {
+    const vis = roomState(2) !== 'unvisited' && roomState(3) !== 'unvisited';
+    const cls = vis ? 'r-conn-vis' : 'r-conn';
+    const dc = 1 * CW + 2;
+    write(5 * CH + 2, dc, '│', cls);  // bottom of room 2
+    write(6 * CH - 1, dc, '│', cls);  // top of room 3 south arm
+  }
+
+  // Special connector: room 2 east → room 3 east arm at [5,2]
+  function h2to3east() {
+    const vis = roomState(2) !== 'unvisited' && roomState(3) !== 'unvisited';
+    const cls = vis ? 'r-conn-vis' : 'r-conn';
+    const dr = 5 * CH + 1;
+    write(dr, 1 * CW + 4, '─', cls);  // right edge of room 2
+    write(dr, 2 * CW,     '─', cls);  // left edge of room 3 east arm
+  }
+
+  // Draw all connections
+  hCorridor(6,  1);   // entrance ─ hallway
+  vCorridor(1,  2);   // hallway │ audience
+  v2to3south();       // audience │ room 3 (south)
+  h2to3east();        // audience ─ room 3 (east arm)
+  hCorridor(2,  4);   // audience ─ meeting room
+  vCorridor(4,  5);   // meeting room │ inner hallway
+  vCorridor(7,  8);   // kitchen │ store room
+  vCorridor(8, 10);   // store room │ rear vestibule
+  hCorridor(10,11);   // rear vestibule ─ exit
+  hCorridor(9, 19);   // lift ─ anteroom
+  hCorridor(13,12);   // guardroom ─ dungeon
+  vCorridor(14,15);   // master bedroom │ upper hallway
+  hCorridor(14,17);   // master bedroom ─ chambermaids
+  vCorridor(17,18);   // chambermaids │ dressing chamber (18 N of 17)
+  vCorridor(16,17);   // treasury │ chambermaids (16 S of 17)
+
+  // Stairwell markers
+  function stairMark(id, sym) {
+    const p = FINAL[id];
+    if (!p || roomState(id) === 'unvisited') return;
+    write(p[0] * CH + 1, p[1] * CW + 3, sym, 'r-conn-vis');
+  }
+  stairMark(5,  '↕');  // inner hallway: up→15, down→13
+  stairMark(15, '↕');  // upper hallway: up←5, down→5
+  stairMark(9,  '↕');  // lift
+  stairMark(8,  '↑');  // store room → lift
+  stairMark(13, '↑');  // guardroom → inner hallway
+  stairMark(19, '←');  // anteroom → treasury (west, not adjacent on map)
+  stairMark(16, '←');  // treasury ← anteroom marker
+
+  // ── RENDER ──
+  let html = '';
+  for (let r = 0; r < DH; r++) {
+    let rowHtml = '', curCls = null, buf = '';
+    for (let c = 0; c < DW; c++) {
+      const cell = grid[r][c];
+      const ch = cell.ch, cls = cell.cls;
+      if (cls !== curCls) {
+        if (buf) rowHtml += curCls ? `<span class="${curCls}">${esc(buf)}</span>` : esc(buf);
+        buf = ''; curCls = cls;
+      }
+      buf += ch;
+    }
+    if (buf) rowHtml += curCls ? `<span class="${curCls}">${esc(buf)}</span>` : esc(buf);
+    html += rowHtml + '\n';
+  }
+  el.innerHTML = html;
+}
+
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+── end renderMap ── */
+
 function fullRefresh() {
   updateStats();
   updateInventory();
   updateExits();
   updateRoomName();
   updateActionButtons();
+  // renderMap(); — temporarily disabled
 }
 
 // ══════════════════════════════════════════════
@@ -901,10 +1241,11 @@ function describeRoom(r) {
   // Without light, can't see anything (line 320)
   if (!G.light) {
     log("it is too dark to see anything.", 'dim');
-    // Still show monster warnings based on contents
     const k = G.roomContents[r];
     if (k !== undefined && k < 0) {
-      setTimeout(() => log("danger... there is a monster here....", 'danger'), 300);
+      setTimeout(() => {
+        log("danger... there is a monster here....", 'danger');
+      }, 300);
     }
     return;
   }
@@ -920,8 +1261,12 @@ function describeRoom(r) {
   const k = G.roomContents[r];
   if (k !== undefined) {
     if (k > 9) {
-      // Treasure (line 360: K>9)
-      setTimeout(() => log(`there is treasure here worth $${k}.`, 'alert'), lines_delay(descFn));
+      // Lines 355-360: M=RND — 50% chance gems, 50% chance treasure
+      const isGems = Math.random() <= 0.5;
+      const msg = isGems
+        ? `there are gems here worth $${k}.`
+        : `there is treasure here worth $${k}.`;
+      setTimeout(() => log(msg, 'alert'), lines_delay(descFn));
     } else if (k < 0) {
       // Monster (lines 370-430)
       const mdata = MONSTERS[String(k)];
@@ -1029,10 +1374,7 @@ function chooseFight(k, ff, weapon) {
   runBattle(ff, mdata[0], k);
 }
 
-// THE BATTLE — lines 870-970
-// Original: repeated rounds; monster attacks/player attacks alternating;
-// each round has random chance to wound either side;
-// loop continues until RND(1)*16 > FF (player wins) or strength hits 0
+// THE BATTLE — lines 870-970 (updated BASIC)
 function runBattle(ff, monsterName, roomKey) {
   G.inBattle = true;
   updateActionButtons();
@@ -1040,45 +1382,69 @@ function runBattle(ff, monsterName, roomKey) {
   logSep();
   log('*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*', 'separator');
 
-  const BATTLE_FLAVOUR = [
-    `${monsterName.toLowerCase()} attacks!`,
-    "you attack the monster!",
-    "you manage to wound it.",
-    "the monster wounds you!",
-    "rip! tear! rip!",
-    "you want to run, but you stand your ground...",
-    "will this be a fight to the death?",
-    "his eyes flash fearfully...",
-    "blood drips from his claws...",
-    "you smell sulfur on his breath...",
-    "he strikes wildly, madly!",
-    "you have never fought an opponent like this!!",
-  ];
-
   let t = 100;
   let round = 0;
   const MAX_ROUNDS = 12;
 
   function battleRound() {
     if (G.strength < 1) {
-      // Player died mid-battle
       log(`the ${monsterName.toLowerCase()} defeated you.`, 'danger', t);
-      G.strength = Math.floor(G.strength / 2); // line 960
+      G.strength = Math.floor(G.strength / 2);
       setTimeout(() => triggerDeath(), t + 400);
       return;
     }
 
     round++;
 
-    // Pick a flavour line (line 890: random attack direction)
-    const flavour = BATTLE_FLAVOUR[Math.floor(Math.random() * BATTLE_FLAVOUR.length)];
-    log(flavour, 'danger', t);
+    // Line 890: attack direction random
+    log(Math.random() > 0.5 ? `${monsterName.toLowerCase()} attacks!` : "you attack the monster!", 'danger', t);
     t += 500;
 
-    // Monster wounds player? (line 930: RND(1)>.5)
+    // Line 905: torch knocked out during battle (~1.3% per round ≈ 5% over 4 rounds)
+    if (Math.random() > 0.987 && G.light) {
+      G.light = false;
+      log("your torch was knocked from your hand!", 'danger', t);
+      t += 400;
+    }
+
+    // Line 906: axe dropped during battle (~1.3% per round ≈ 5% over 4 rounds)
+    if (Math.random() > 0.987 && G.axe) {
+      G.axe = false;
+      ff = 5 * Math.floor(ff / 4);
+      log("you drop your axe in the heat of battle!", 'danger', t);
+      t += 400;
+    }
+
+    // Line 907: sword knocked away (~1.3% per round ≈ 5% over 4 rounds)
+    if (Math.random() > 0.987 && G.sword) {
+      G.sword = false;
+      ff = 4 * Math.floor(ff / 3);
+      log("your sword is knocked from your hand!!!", 'danger', t);
+      t += 400;
+    }
+
+    // Line 910: player wounds monster
+    if (Math.random() > 0.5) {
+      ff = Math.floor(5 * ff / 6);
+      log("you manage to wound it.", '', t);
+      t += 400;
+    }
+
+    // Lines 911-919: probabilistic flavour lines
+    if (Math.random() > 0.95) { log("aaaaargh!!!", 'danger', t); t += 300; log("rip! tear! rip!", 'danger', t); t += 300; }
+    if (Math.random() > 0.9)  { log("you want to run but you stand your ground...", 'danger', t); t += 300; }
+    if (Math.random() > 0.9)  { log("*&%%$#$% $%#!! @ #$$# #$@! #$ $#$", 'danger', t); t += 300; }
+    if (Math.random() > 0.7)  { log("will this be a battle to the death?", 'danger', t); t += 300; }
+    if (Math.random() > 0.7)  { log("his eyes flash fearfully.", 'danger', t); t += 300; }
+    if (Math.random() > 0.7)  { log("blood drips from his claws.", 'danger', t); t += 300; }
+    if (Math.random() > 0.7)  { log("you smell the sulphur on his breath.", 'danger', t); t += 300; }
+    if (Math.random() > 0.7)  { log("he strikes wildly, madly...........", 'danger', t); t += 300; }
+    if (Math.random() > 0.7)  { log("you have never fought an opponent like this!!", 'danger', t); t += 300; }
+
+    // Line 930: monster wounds player
     if (Math.random() > 0.5) {
       G.strength -= 5;
-      log(`the monster wounds you! strength: ${Math.max(0,G.strength)}.`, 'danger', t);
+      log(`the monster wounds you! strength: ${Math.max(0, G.strength)}.`, 'danger', t);
       t += 400;
       if (G.strength < 1) {
         G.strength = Math.floor(G.strength / 2);
@@ -1089,29 +1455,17 @@ function runBattle(ff, monsterName, roomKey) {
       }
     }
 
-    // Player wounds monster? (line 910: RND(1)>.5 → reduce FF)
-    if (Math.random() > 0.5) {
-      ff = Math.floor(5 * ff / 6);
-      log("you manage to wound it.", '', t);
-      t += 400;
-    }
-
-    // Check for battle end (line 940: IF RND(1)>.35 THEN 890 — loop)
-    // line 950: IF RND(1)*16>FF — player wins
+    // Line 940: loop or resolve
     if (Math.random() > 0.35 && round < MAX_ROUNDS) {
-      // Continue battle
       setTimeout(battleRound, t);
       setTimeout(fullRefresh, t);
     } else {
-      // Resolve
       if (Math.random() * 16 > ff) {
         // Player wins (line 950)
         G.mk++;
-        G.roomContents[G.room] = undefined;
         delete G.roomContents[G.room];
         log(`and you managed to kill the ${monsterName.toLowerCase()}!`, 'alert', t);
         log(`monsters killed: ${G.mk}`, 'dim', t + 100);
-        // Ice dragon rewards the player with a magic amulet
         if (roomKey === -4 && !G.amulet) {
           G.amulet = true;
           log("as the ice dragon falls, a magic amulet rolls from its hoard to your feet.", 'alert', t + 250);

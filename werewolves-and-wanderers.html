@@ -89,7 +89,7 @@
     to   { opacity: 1; transform: translateY(0); }
   }
 
-  /* ── ASCII MAP — temporarily disabled ──
+  /* ── ASCII MAP ── */
   #map-section { padding: 14px 18px; border-bottom: 1px solid var(--panel-border); }
   #map-section h3 {
     font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase;
@@ -112,7 +112,6 @@
   #ascii-map .r-current   { color: var(--accent); }
   #ascii-map .r-conn      { color: #2a2a2a; }
   #ascii-map .r-conn-vis  { color: #383838; }
-  ── end map CSS ── */
 
   /* ── RIGHT PANEL: status + actions ── */
   #side-panel {
@@ -470,13 +469,12 @@
       </div>
     </div>
 
-    <!-- Map — temporarily disabled
+    <!-- Map -->
     <div id="map-section">
       <h3>Map</h3>
-      <div id="map-legend">■ current &nbsp; · visited &nbsp; ░ unseen</div>
+      <div id="map-legend" style="margin-bottom:4px;"></div>
       <div id="ascii-map"></div>
     </div>
-    -->
 
     <!-- Stats -->
     <div class="side-section">
@@ -878,91 +876,115 @@ function updateActionButtons() {
 // Room 3 is L-shaped: it occupies [6,1] AND [5,2], connected to room 2
 // on both its south side (col 1) and east side (col 2, row 5).
 // ══════════════════════════════════════════════
-/* ── renderMap — temporarily disabled ──
+// ══════════════════════════════════════════════
+// ASCII MAP — shows only the current floor
+// ══════════════════════════════════════════════
+
+// Floor definitions
+const FLOOR_OF = {
+   1: 'ground',  2: 'ground',  3: 'ground',  4: 'ground',
+   5: 'ground',  6: 'ground',  7: 'ground',  8: 'ground',
+   9: 'ground', 10: 'ground', 11: 'ground',
+  12: 'basement', 13: 'basement',
+  14: 'upper', 15: 'upper', 16: 'upper',
+  17: 'upper', 18: 'upper', 19: 'upper',
+};
+
+const FLOOR_LABELS = {
+  ground:   'ground floor',
+  basement: 'basement',
+  upper:    'upper floor',
+};
+
+// Per-floor room layouts: [row, col] (row 0 = north, col 0 = west)
+//
+// Stairwell alignment across floors (same col = same vertical shaft):
+//   Col 0: kitchen(7), store room(8), entrance(6), rear vestibule(10)
+//   Col 1: hallway(1), audience(2), exit(11)
+//   Col 2: lift(9), meeting room(4), inner hallway(5) ← STAIRWELL COL
+//           upper: upper hallway(15), treasury(16)
+//           basement: guardroom(13)
+//   Col 3: upper: chambermaids(17), lift anteroom(19)
+//           basement: dungeon(12)
+//   Col 4: upper: dressing chamber(18), master bedroom(14)
+//
+const FLOOR_LAYOUTS = {
+  ground: {
+     7: [0, 0],  // kitchen
+     8: [1, 0],  // store room       S of kitchen
+     6: [2, 0],  // entrance         S of store room
+    10: [3, 0],  // rear vestibule   S of entrance
+    11: [3, 1],  // exit             E of rear vestibule
+     1: [2, 1],  // hallway          E of entrance
+     2: [4, 1],  // audience         S of hallway
+     4: [1, 2],  // meeting room     N of inner hallway (stairwell col)
+     5: [2, 2],  // inner hallway    stairwell col
+     9: [0, 2],  // lift             N of inner hallway (stairwell col)
+  // room 3: L-shape, south arm [5,1], east arm [4,2] — handled in renderMap
+  },
+  basement: {
+    13: [0, 2],  // guardroom        stairwell col — aligns with room 5 above
+    12: [0, 3],  // dungeon          E of guardroom
+  },
+  upper: {
+    15: [1, 2],  // upper hallway    stairwell col — aligns with room 5 below
+    16: [2, 2],  // treasury         S of upper hallway (stairwell col)
+    17: [1, 3],  // chambermaids'    E of upper hallway
+    19: [2, 3],  // lift anteroom    S of chambermaids / E of treasury
+    14: [0, 3],  // master bedroom   N of chambermaids
+    18: [0, 4],  // dressing chamber E of master bedroom
+  },
+};
+
+// Per-floor corridor connections [roomA, roomB, 'h'|'v']
+// Room 3's special L corridors are drawn separately in renderMap
+const FLOOR_CONNECTIONS = {
+  ground: [
+    [ 7,  8, 'v'],  // kitchen — store room
+    [ 8,  6, 'v'],  // store room — entrance
+    [ 6, 10, 'v'],  // entrance — rear vestibule
+    [10, 11, 'h'],  // rear vestibule — exit
+    [ 6,  1, 'h'],  // entrance — hallway
+    [ 1,  2, 'v'],  // hallway — audience
+    [ 4,  5, 'v'],  // meeting room — inner hallway
+  ],
+  basement: [
+    [13, 12, 'h'],  // guardroom — dungeon
+  ],
+  upper: [
+    [15, 16, 'v'],  // upper hallway — treasury
+    [15, 17, 'h'],  // upper hallway — chambermaids
+    [14, 17, 'v'],  // master bedroom — chambermaids (same col)
+    [14, 18, 'h'],  // master bedroom — dressing chamber
+    [17, 19, 'v'],  // chambermaids — lift anteroom
+    [16, 19, 'h'],  // treasury — lift anteroom
+  ],
+};
+
 function renderMap() {
   const el = document.getElementById('ascii-map');
+  const legend = document.getElementById('map-legend');
   if (!el) return;
 
-  //  Verified spatial layout (row=0 is northernmost):
-  //
-  //  col:  0     1     2     3     4     5
-  //  r0:  [7]
-  //  r1:  [8]               [9]  [19]  [16]
-  //  r2:  [10]  [11]              [14]  [17]
-  //  r3:                          [15]  [18]
-  //  r4:  [6]   [1]         [↕5→15]
-  //  r5:        [2]   [4]
-  //  r6:        [3L]  [3R]←L-shape spans cols 1+2
-  //  r7:              [13]  [12]
-  //
-  // Room 3 is drawn wide across [6,1] and [6,2].
-  // Room 2 connects south to [6,1] and east to [5,2] (which is room 3's "east arm").
+  const floor = FLOOR_OF[G.room] || 'ground';
+  const layout = FLOOR_LAYOUTS[floor];
+  const connections = FLOOR_CONNECTIONS[floor] || [];
 
-  const POS = {
-     7: [0, 0],
-     8: [1, 0],
-    10: [2, 0],
-    11: [2, 1],
-     6: [4, 0],
-     1: [4, 1],
-     2: [5, 1],
-  // 3 is L-shaped — drawn separately below, anchored at [6,1]
-     4: [5, 2],
-     5: [6, 2],  // inner hallway — east arm of room 3
-    13: [7, 2],
-    12: [7, 3],
-     9: [1, 2],
-    19: [1, 3],
-    16: [1, 4],
-    15: [3, 3],
-    14: [2, 3],
-    17: [2, 4],
-    18: [1, 5],  // dressing chamber — but 18→S→17 so 18 is N of 17 [2,4] → [1,4]
-  };
-  // Fix 18: N of 17 which is at [2,4], so 18 at [1,4] — but 16 is at [1,4]. Shift right.
-  // 16→E→19 means 19 is E of 16. 9→S→19 means 19 is S of 9.
-  // Let's re-anchor upper-right cluster carefully:
-  //   9  at [1,2], 19 at [2,2]? But 10 is at [2,0] and 11 at [2,1]...
-  //   Move lift cluster to right side:
-  //   9 at [1,3], 19 at [2,3]? But 14 at [2,3]...
-  // Cleanest: put lift cluster above meeting-room column:
-  //   9  [1,2], 19 [1,3], 16 [1,4]   (all in row 1, going east)
-  //   upper floor: 15[3,3], 14[2,3]  ← 14 N of 15; 17[2,4] E of 14; 18[1,4] N of 17
-  //   But 16 is also at [1,4] — clash with 18.
-  // Solution: push upper floor one column further right:
-  //   15[3,4], 14[2,4], 17[2,5], 18[1,5]
-  //   And lift cluster: 9[1,2], 19[1,3], 16[1,4] — 16 N→17[2,5]? Non-adjacent, skip V corridor.
-  //   16→N→17: 17 must be directly N of 16 OR we just show the connection with a bent line.
-  //   Since the map is schematic not geographic, let's just note the stair symbol.
-  // FINAL definitive — no clashes:
-  const FINAL = {
-     7: [0, 0],   // kitchen
-     8: [1, 0],   // store room       S of kitchen
-    10: [2, 0],   // rear vestibule   S of store room
-    11: [2, 1],   // exit             E of rear vestibule
-     6: [4, 0],   // entrance
-     1: [4, 1],   // hallway          E of entrance
-     2: [5, 1],   // audience         S of hallway
-  // room 3 L-shape at [6,1] and [6,2] — handled specially
-     4: [5, 2],   // meeting room     E of audience / N of inner hallway
-     5: [6, 2],   // inner hallway    S of meeting room / E arm of room 3
-    13: [7, 2],   // guardroom        S of inner hallway
-    12: [7, 3],   // dungeon          E of guardroom
-  // lift column
-     9: [2, 2],   // lift
-    19: [2, 3],   // lift anteroom    E of lift
-  // upper floor — 18 above 17 above 16, stacked in col 4
-    18: [2, 4],   // dressing chamber (northernmost)
-    17: [3, 4],   // chambermaids'    S of dressing chamber
-    16: [4, 4],   // treasury         S of chambermaids
-    14: [3, 3],   // master bedroom   W of chambermaids
-    15: [4, 3],   // upper hallway    S of master bedroom
-  };
+  if (legend) legend.textContent = FLOOR_LABELS[floor];
 
-  const ROWS = 8;
-  const COLS = 5;
-  const CW = 5;  // cell width in chars
-  const CH = 2;  // cell height in display rows
+  // Determine grid dimensions
+  let maxRow = 0, maxCol = 0;
+  for (const [r, c] of Object.values(layout)) {
+    if (r > maxRow) maxRow = r;
+    if (c > maxCol) maxCol = c;
+  }
+  // Room 3 L-shape adds one extra row on ground floor
+  if (floor === 'ground') maxRow = Math.max(maxRow, 5);
+
+  const ROWS = maxRow + 1;
+  const COLS = maxCol + 1;
+  const CW = 5;
+  const CH = 2;
   const DH = ROWS * CH;
   const DW = COLS * CW + 1;
 
@@ -982,175 +1004,141 @@ function renderMap() {
     return 'unvisited';
   }
 
-  function cls3(state) {
-    return state === 'current' ? 'r-current' : state === 'visited' ? 'r-visited' : 'r-unvisited';
+  function clsFor(state) {
+    return state === 'current' ? 'r-current'
+         : state === 'visited' ? 'r-visited'
+         : 'r-unvisited';
   }
 
-  // Draw a standard single-cell room box
-  function drawRoom(id, row, col) {
-    const dr = row * CH;
-    const dc = col * CW;
+  function drawBox(id, row, col) {
+    const dr = row * CH, dc = col * CW;
     const state = roomState(id);
-    const cls = cls3(state);
+    const cls = clsFor(state);
+    const lbl = id === 11 ? 'EX' : String(id).padStart(2,' ');
     if (state === 'unvisited') {
       write(dr,   dc, ' ░░░ ', cls);
       write(dr+1, dc, ' ░░░ ', cls);
     } else {
-      const lbl = id === 11 ? 'EX' : String(id).padStart(2,' ');
       write(dr,   dc, ' ╔═╗ ', cls);
       write(dr+1, dc, ` ╚${lbl}╝ `, cls);
     }
   }
 
-  // Draw room 3 as an L-shape spanning [r,c] (south cell) and [r-1,c+1] (east cell)
-  // The L occupies the bottom-left and top-right of a 2×2 area.
-  //   [r-1, c]  = empty corner
-  //   [r-1, c+1]= east arm  (room 2 →E leads here)
-  //   [r,   c]  = south arm (room 2 →S leads here)
-  //   [r,   c+1]= inner hallway (room 5)
-  function drawRoomL(id, row, col) {
-    const state = roomState(id);
-    const cls = cls3(state);
-    // South arm at [row, col]
-    const dr0 = row * CH;
-    const dc0 = col * CW;
-    // East arm at [row-1, col+1]
-    const dr1 = (row-1) * CH;
-    const dc1 = (col+1) * CW;
+  // Draw all standard rooms on this floor
+  for (const [rid, [row, col]] of Object.entries(layout)) {
+    drawBox(parseInt(rid), row, col);
+  }
 
+  // Draw L-shaped room 3 on ground floor
+  // South arm at [5,1], east arm at [4,2]
+  if (floor === 'ground') {
+    const state = roomState(3);
+    const cls = clsFor(state);
+    // South arm
+    const drs = 5*CH, dcs = 1*CW;
     if (state === 'unvisited') {
-      write(dr0,   dc0, ' ░░░ ', cls);
-      write(dr0+1, dc0, ' ░░░ ', cls);
-      write(dr1,   dc1, ' ░░░ ', cls);
-      write(dr1+1, dc1, ' ░░░ ', cls);
+      write(drs,   dcs, ' ░░░ ', cls);
+      write(drs+1, dcs, ' ░░░ ', cls);
     } else {
-      const lbl = String(id).padStart(2,' ');
-      // South arm — top half open, bottom has label
-      write(dr0,   dc0, ' ╔═╗ ', cls);
-      write(dr0+1, dc0, ` ╚${lbl}╝ `, cls);
-      // East arm — just top box (shares label context)
-      write(dr1,   dc1, ' ╔═╗ ', cls);
-      write(dr1+1, dc1, ` ╚ 3╝ `, cls);
-      // Connect the two arms with a corner piece
-      write(dr0,   dc0+CW,   '╗', cls);   // top-right of south arm
-      write(dr0,   dc1,      '╚', cls);   // bottom-left of east arm
+      write(drs,   dcs, ' ╔═╗ ', cls);
+      write(drs+1, dcs, ' ╚ 3╝ ', cls);
     }
+    // East arm
+    const dre = 4*CH, dce = 2*CW;
+    if (state === 'unvisited') {
+      write(dre,   dce, ' ░░░ ', cls);
+      write(dre+1, dce, ' ░░░ ', cls);
+    } else {
+      write(dre,   dce, ' ╔═╗ ', cls);
+      write(dre+1, dce, ' ╚ 3╝ ', cls);
+    }
+    // Room 2 [4,1] → south arm [5,1]: vertical connector
+    const vis23s = roomState(2) !== 'unvisited' && roomState(3) !== 'unvisited';
+    const c23s = vis23s ? 'r-conn-vis' : 'r-conn';
+    write(4*CH+2, 1*CW+2, '│', c23s);
+    write(5*CH-1, 1*CW+2, '│', c23s);
+    // Room 2 [4,1] → east arm [4,2]: horizontal connector (same row)
+    const c23e = vis23s ? 'r-conn-vis' : 'r-conn';
+    write(4*CH+1, 1*CW+4, '─', c23e);
+    write(4*CH+1, 2*CW,   '─', c23e);
+    // Inner hallway [2,2] → east arm [4,2]: vertical connector (2 rows gap)
+    const vis53 = roomState(5) !== 'unvisited' && roomState(3) !== 'unvisited';
+    const c53 = vis53 ? 'r-conn-vis' : 'r-conn';
+    write(2*CH+2, 2*CW+2, '│', c53);
+    write(3*CH,   2*CW+2, '│', c53);
+    write(3*CH+1, 2*CW+2, '│', c53);
+    write(4*CH-1, 2*CW+2, '│', c53);
   }
 
-  // Draw all standard rooms
-  for (const [r, [row, col]] of Object.entries(FINAL)) {
-    drawRoom(parseInt(r), row, col);
-  }
-  // Draw L-shaped room 3
-  drawRoomL(3, 6, 1);
-
-  // ── CORRIDORS ──
-  // hCorridor: two rooms on same row, adjacent or with gap
+  // Standard corridor functions
   function hCorridor(ra, rb) {
-    const pa = FINAL[ra], pb = FINAL[rb];
+    const pa = layout[ra], pb = layout[rb];
     if (!pa || !pb || pa[0] !== pb[0]) return;
-    const dr = pa[0] * CH + 1;
+    const dr = pa[0]*CH + 1;
     const lc = Math.min(pa[1], pb[1]);
     const rc = Math.max(pa[1], pb[1]);
     const vis = roomState(ra) !== 'unvisited' && roomState(rb) !== 'unvisited';
     const cls = vis ? 'r-conn-vis' : 'r-conn';
-    for (let c = lc; c <= rc; c++) {
-      const dc = c * CW;
-      if (c === lc)       write(dr, dc + CW - 1, '─', cls);
-      else if (c === rc)  write(dr, dc,           '─', cls);
-      else { write(dr, dc, '─────', cls); }
-    }
+    write(dr, lc*CW+4, '─', cls);
+    for (let c = lc+1; c < rc; c++) write(dr, c*CW, '─────', cls);
+    write(dr, rc*CW,   '─', cls);
   }
 
-  // vCorridor: two rooms in same column
   function vCorridor(ra, rb) {
-    const pa = FINAL[ra], pb = FINAL[rb];
+    const pa = layout[ra], pb = layout[rb];
     if (!pa || !pb || pa[1] !== pb[1]) return;
-    const dc = pa[1] * CW + 2;
+    const dc = pa[1]*CW + 2;
     const tr = Math.min(pa[0], pb[0]);
     const br = Math.max(pa[0], pb[0]);
     const vis = roomState(ra) !== 'unvisited' && roomState(rb) !== 'unvisited';
     const cls = vis ? 'r-conn-vis' : 'r-conn';
-    write(tr * CH + 2,  dc, '│', cls);
-    for (let r = tr + 1; r < br; r++) {
-      write(r * CH,     dc, '│', cls);
-      write(r * CH + 1, dc, '│', cls);
+    write(tr*CH+2,  dc, '│', cls);
+    for (let r = tr+1; r < br; r++) {
+      write(r*CH,   dc, '│', cls);
+      write(r*CH+1, dc, '│', cls);
     }
-    write(br * CH - 1,  dc, '│', cls);
+    write(br*CH-1,  dc, '│', cls);
   }
 
-  // Special connector: room 2 south → room 3 south arm (same col, draw short segment)
-  function v2to3south() {
-    const vis = roomState(2) !== 'unvisited' && roomState(3) !== 'unvisited';
-    const cls = vis ? 'r-conn-vis' : 'r-conn';
-    const dc = 1 * CW + 2;
-    write(5 * CH + 2, dc, '│', cls);  // bottom of room 2
-    write(6 * CH - 1, dc, '│', cls);  // top of room 3 south arm
+  for (const [ra, rb, type] of connections) {
+    if (type === 'h') hCorridor(ra, rb);
+    else              vCorridor(ra, rb);
   }
 
-  // Special connector: room 2 east → room 3 east arm at [5,2]
-  function h2to3east() {
-    const vis = roomState(2) !== 'unvisited' && roomState(3) !== 'unvisited';
-    const cls = vis ? 'r-conn-vis' : 'r-conn';
-    const dr = 5 * CH + 1;
-    write(dr, 1 * CW + 4, '─', cls);  // right edge of room 2
-    write(dr, 2 * CW,     '─', cls);  // left edge of room 3 east arm
-  }
-
-  // Draw all connections
-  hCorridor(6,  1);   // entrance ─ hallway
-  vCorridor(1,  2);   // hallway │ audience
-  v2to3south();       // audience │ room 3 (south)
-  h2to3east();        // audience ─ room 3 (east arm)
-  hCorridor(2,  4);   // audience ─ meeting room
-  vCorridor(4,  5);   // meeting room │ inner hallway
-  vCorridor(7,  8);   // kitchen │ store room
-  vCorridor(8, 10);   // store room │ rear vestibule
-  hCorridor(10,11);   // rear vestibule ─ exit
-  hCorridor(9, 19);   // lift ─ anteroom
-  hCorridor(13,12);   // guardroom ─ dungeon
-  vCorridor(14,15);   // master bedroom │ upper hallway
-  hCorridor(14,17);   // master bedroom ─ chambermaids
-  vCorridor(17,18);   // chambermaids │ dressing chamber (18 N of 17)
-  vCorridor(16,17);   // treasury │ chambermaids (16 S of 17)
-
-  // Stairwell markers
+  // Stair markers (↑ up / ↓ down / ↕ both)
   function stairMark(id, sym) {
-    const p = FINAL[id];
+    const p = layout[id];
     if (!p || roomState(id) === 'unvisited') return;
-    write(p[0] * CH + 1, p[1] * CW + 3, sym, 'r-conn-vis');
+    write(p[0]*CH+1, p[1]*CW+3, sym, 'r-conn-vis');
   }
-  stairMark(5,  '↕');  // inner hallway: up→15, down→13
-  stairMark(15, '↕');  // upper hallway: up←5, down→5
-  stairMark(9,  '↕');  // lift
-  stairMark(8,  '↑');  // store room → lift
-  stairMark(13, '↑');  // guardroom → inner hallway
-  stairMark(19, '←');  // anteroom → treasury (west, not adjacent on map)
-  stairMark(16, '←');  // treasury ← anteroom marker
 
-  // ── RENDER ──
+  if (floor === 'ground')   { stairMark(5, '↕'); stairMark(9, '↓'); }
+  if (floor === 'basement') { stairMark(13, '↑'); }
+  if (floor === 'upper')    { stairMark(15, '↑'); stairMark(19, '↓'); }
+
+  // Render grid to HTML
   let html = '';
   for (let r = 0; r < DH; r++) {
     let rowHtml = '', curCls = null, buf = '';
     for (let c = 0; c < DW; c++) {
-      const cell = grid[r][c];
-      const ch = cell.ch, cls = cell.cls;
+      const {ch, cls} = grid[r][c];
       if (cls !== curCls) {
-        if (buf) rowHtml += curCls ? `<span class="${curCls}">${esc(buf)}</span>` : esc(buf);
+        if (buf) rowHtml += curCls ? `<span class="${curCls}">${escMap(buf)}</span>` : escMap(buf);
         buf = ''; curCls = cls;
       }
       buf += ch;
     }
-    if (buf) rowHtml += curCls ? `<span class="${curCls}">${esc(buf)}</span>` : esc(buf);
+    if (buf) rowHtml += curCls ? `<span class="${curCls}">${escMap(buf)}</span>` : escMap(buf);
     html += rowHtml + '\n';
   }
   el.innerHTML = html;
 }
 
-function esc(s) {
+function escMap(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-── end renderMap ── */
+
+
 
 function fullRefresh() {
   updateStats();
@@ -1158,7 +1146,7 @@ function fullRefresh() {
   updateExits();
   updateRoomName();
   updateActionButtons();
-  // renderMap(); — temporarily disabled
+  renderMap();
 }
 
 // ══════════════════════════════════════════════

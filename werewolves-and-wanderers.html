@@ -113,6 +113,195 @@
   #ascii-map .r-conn      { color: #2a2a2a; }
   #ascii-map .r-conn-vis  { color: #383838; }
 
+  /* ── FIGHT SCREEN ── */
+  #fight-screen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    z-index: 50;
+    flex-direction: column;
+  }
+  #fight-screen.visible { display: flex; }
+
+  #fight-header {
+    padding: 14px 24px 10px;
+    border-bottom: 1px solid var(--panel-border);
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dim);
+  }
+
+  #fight-body {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* left: player */
+  #fight-player {
+    width: 220px;
+    flex-shrink: 0;
+    border-right: 1px solid var(--panel-border);
+    padding: 20px 18px;
+    display: flex;
+    flex-direction: column;
+  }
+  #fight-player h3, #fight-enemy h3 {
+    font-size: 10px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--dim);
+    margin-bottom: 12px;
+  }
+  .fight-stat {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    margin-bottom: 5px;
+  }
+  .fight-stat-label { color: var(--dim); }
+  .fight-stat-value { color: var(--fg); }
+  .fight-stat-value.low      { color: #888; }
+  .fight-stat-value.critical { color: #777; }
+
+  /* hp bar */
+  .hp-bar-wrap {
+    margin: 6px 0 14px;
+    height: 3px;
+    background: #1a1a1a;
+    width: 100%;
+  }
+  .hp-bar {
+    height: 100%;
+    background: var(--fg);
+    transition: width 0.35s ease;
+  }
+  .hp-bar.low      { background: #666; }
+  .hp-bar.critical { background: #444; }
+
+  /* action buttons with cooldown */
+  .fight-actions { margin-top: 10px; display: flex; flex-direction: column; gap: 7px; }
+
+  .fight-action-btn {
+    position: relative;
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--btn-bg);
+    border: 1px solid var(--btn-border);
+    color: var(--fg);
+    font-family: inherit;
+    font-size: 11px;
+    text-align: left;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    overflow: hidden;
+    transition: border-color 0.1s;
+  }
+  .fight-action-btn:hover:not(:disabled) { border-color: #444; }
+  .fight-action-btn:disabled {
+    color: #444;
+    border-color: #1a1a1a;
+    cursor: default;
+  }
+  .fight-action-btn .fab-key {
+    color: var(--dim); margin-right: 6px; font-size: 10px;
+  }
+  .fight-action-btn .fab-sub {
+    font-size: 10px; color: var(--dim); float: right;
+  }
+  /* cooldown overlay sweeps left→right over the button */
+  .cooldown-fill {
+    position: absolute;
+    top: 0; left: 0; bottom: 0;
+    width: 0%;
+    background: rgba(255,255,255,0.04);
+    pointer-events: none;
+    transition: none;
+  }
+  .fight-action-btn.cooling .cooldown-fill {
+    /* width animated via JS requestAnimationFrame */
+  }
+  .fight-action-btn.ready {
+    border-color: #444;
+    color: var(--accent);
+  }
+  .fight-action-btn.ready .fab-key { color: #888; }
+
+  /* middle: battle log */
+  #fight-log-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--panel-border);
+    min-width: 0;
+  }
+  #fight-log {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+    scroll-behavior: smooth;
+  }
+  #fight-log::-webkit-scrollbar { width: 3px; }
+  #fight-log::-webkit-scrollbar-thumb { background: #222; }
+  .fight-entry {
+    font-size: 12px;
+    margin-bottom: 5px;
+    opacity: 0;
+    animation: fadeIn 0.3s forwards;
+    color: var(--fg);
+  }
+  .fight-entry.dim    { color: var(--dim); }
+  .fight-entry.danger { color: #aaa; font-style: italic; }
+  .fight-entry.alert  { color: var(--accent); }
+  .fight-entry.sep    { color: #1e1e1e; }
+
+  /* right: enemy */
+  #fight-enemy {
+    width: 220px;
+    flex-shrink: 0;
+    padding: 20px 18px;
+    display: flex;
+    flex-direction: column;
+  }
+  #fight-enemy-name {
+    font-size: 13px;
+    color: var(--accent);
+    margin-bottom: 3px;
+    letter-spacing: 0.04em;
+  }
+  #fight-enemy-level { font-size: 11px; color: var(--dim); margin-bottom: 10px; }
+
+  .threat-bar-wrap {
+    margin: 4px 0 16px;
+    height: 3px;
+    background: #1a1a1a;
+    width: 100%;
+  }
+  .threat-bar {
+    height: 100%;
+    background: #555;
+    transition: width 0.4s ease;
+  }
+
+  /* enemy attack timer bar */
+  #enemy-timer-wrap {
+    margin-top: 14px;
+  }
+  #enemy-timer-label {
+    font-size: 10px; color: var(--dim);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  #enemy-timer-bar-wrap {
+    height: 3px; background: #1a1a1a; width: 100%;
+  }
+  #enemy-timer-bar {
+    height: 100%; width: 0%;
+    background: #555;
+  }
+
   /* ── RIGHT PANEL: status + actions ── */
   #side-panel {
     width: 260px;
@@ -434,6 +623,67 @@
     </table>
   </div>
   <button class="restart-btn" onclick="restartGame()">play again</button>
+</div>
+
+<!-- FIGHT SCREEN -->
+<div id="fight-screen">
+  <div id="fight-header">// combat</div>
+  <div id="fight-body">
+
+    <!-- Player panel -->
+    <div id="fight-player">
+      <h3>You</h3>
+      <div class="fight-stat">
+        <span class="fight-stat-label">strength</span>
+        <span class="fight-stat-value" id="fs-strength">—</span>
+      </div>
+      <div class="hp-bar-wrap"><div class="hp-bar" id="fs-hp-bar" style="width:100%"></div></div>
+
+      <div class="fight-actions">
+        <button class="fight-action-btn" id="fab-axe"   onclick="playerAttack('axe')"   disabled>
+          <div class="cooldown-fill" id="cd-axe"></div>
+          <span class="fab-key">1</span>axe<span class="fab-sub">slow · heavy</span>
+        </button>
+        <button class="fight-action-btn" id="fab-sword" onclick="playerAttack('sword')" disabled>
+          <div class="cooldown-fill" id="cd-sword"></div>
+          <span class="fab-key">2</span>sword<span class="fab-sub">fast · sharp</span>
+        </button>
+        <button class="fight-action-btn" id="fab-fists" onclick="playerAttack('fists')" disabled>
+          <div class="cooldown-fill" id="cd-fists"></div>
+          <span class="fab-key">3</span>bare hands<span class="fab-sub">fastest · weak</span>
+        </button>
+        <button class="fight-action-btn" id="fab-eat"   onclick="playerEat()"           disabled>
+          <div class="cooldown-fill" id="cd-eat"></div>
+          <span class="fab-key">E</span>eat food<span class="fab-sub" id="fab-eat-sub">—</span>
+        </button>
+        <button class="fight-action-btn" id="fab-flee"  onclick="doFightFlee()">
+          <span class="fab-key">R</span>flee
+        </button>
+      </div>
+    </div>
+
+    <!-- Battle log -->
+    <div id="fight-log-wrap">
+      <div id="fight-log"></div>
+    </div>
+
+    <!-- Enemy panel -->
+    <div id="fight-enemy">
+      <h3>Enemy</h3>
+      <div id="fight-enemy-name">—</div>
+      <div id="fight-enemy-level">—</div>
+      <div class="threat-bar-wrap"><div class="threat-bar" id="fs-threat-bar" style="width:100%"></div></div>
+      <div class="fight-stat">
+        <span class="fight-stat-label">threat</span>
+        <span class="fight-stat-value" id="fs-threat-val">—</span>
+      </div>
+      <div id="enemy-timer-wrap">
+        <div id="enemy-timer-label">attacks in</div>
+        <div id="enemy-timer-bar-wrap"><div id="enemy-timer-bar"></div></div>
+      </div>
+    </div>
+
+  </div>
 </div>
 
 <!-- MAIN GAME -->
@@ -789,6 +1039,9 @@ function initState() {
     7: Math.floor(Math.random() * 5) + 1,
     8: Math.floor(Math.random() * 5) + 1,
   };
+
+  // A guard's torch is available in room 13 (guardroom) for torchless players
+  G.guardTorch = true;
 }
 
 // ══════════════════════════════════════════════
@@ -862,10 +1115,11 @@ function updateActionButtons() {
   // Treasure: original uses K>9 (value > 9) to distinguish from monsters
   const hasTreasure = k !== undefined && k > 9;
   const hasFood     = G.foodRooms && !!G.foodRooms[G.room];
+  const hasGuardTorch = G.room === 13 && G.guardTorch && !G.light;
 
   document.getElementById('btn-fight').disabled  = !hasMonster || G.inBattle;
   document.getElementById('btn-run').disabled    = !hasMonster || G.inBattle;
-  document.getElementById('btn-pickup').disabled = !hasTreasure && !hasFood;
+  document.getElementById('btn-pickup').disabled = !hasTreasure && !hasFood && !hasGuardTorch;
   document.getElementById('btn-eat').disabled    = G.food <= 0;
   document.getElementById('btn-magic').disabled  = !G.amulet;
 }
@@ -1235,6 +1489,11 @@ function describeRoom(r) {
         log("danger... there is a monster here....", 'danger');
       }, 300);
     }
+    // Exception: guard's torch in room 13 is visible even in darkness —
+    // the player can see its glow from the doorway
+    if (r === 13 && G.guardTorch) {
+      setTimeout(() => log("you can see the faint glow of a torch on the wall.", 'alert'), 300);
+    }
     return;
   }
 
@@ -1274,6 +1533,11 @@ function describeRoom(r) {
   if (scavenge) {
     setTimeout(() => log(`you spot ${scavenge} unit${scavenge > 1 ? 's' : ''} of food you could take.`, 'alert'), lines_delay(descFn) + 120);
   }
+
+  // Show torch hint in guardroom (room 13) if player has no torch
+  if (r === 13 && !G.light && G.guardTorch) {
+    setTimeout(() => log("a guard's torch still sits in its bracket on the wall.", 'alert'), lines_delay(descFn) + 120);
+  }
 }
 
 function lines_delay(descFn) {
@@ -1310,176 +1574,337 @@ function go(dir) {
 }
 
 // ══════════════════════════════════════════════
-// FIGHT — BASIC lines 730-970
+// FIGHT SCREEN — ADR-style interactive combat with cooldowns
 // ══════════════════════════════════════════════
+
+// Weapon definitions: cooldown ms, and ff reduction function
+const WEAPONS = {
+  axe:   { cd: 3200, label: 'axe',        reduce: (ff) => 4 * Math.floor(ff / 5) },
+  sword: { cd: 2000, label: 'sword',      reduce: (ff) => 3 * Math.floor(ff / 4) },
+  fists: { cd: 1400, label: 'bare hands', reduce: (ff) => Math.floor(ff + ff / 5) },
+};
+
+let _F = {};          // current fight state
+let _fTimers = [];    // all active setTimeout/rAF ids
+
+function fClearTimers() {
+  _fTimers.forEach(id => { try { clearTimeout(id); cancelAnimationFrame(id); } catch(e){} });
+  _fTimers = [];
+}
+
+function flog(text, cls) {
+  const el = document.createElement('div');
+  el.className = 'fight-entry' + (cls ? ' ' + cls : '');
+  el.textContent = text;
+  const logEl = document.getElementById('fight-log');
+  if (logEl) { logEl.appendChild(el); logEl.scrollTop = logEl.scrollHeight; }
+}
+function flogSep() { flog('────────────────────────', 'sep'); }
+
+// ── Open fight screen ──
+function showFightScreen(monsterName, baseFf, roomKey) {
+  fClearTimers();
+
+  // Armor modifier (BASIC line 770)
+  let ff = baseFf;
+  if (G.suit) ff = 3 * Math.floor(ff / 4);
+
+  _F = {
+    monsterName, ff, maxFf: ff, roomKey, active: true,
+    // Enemy attacks faster the higher the danger level
+    enemyAttackMs: Math.max(1500, 4200 - ff * 55),
+    cooldowns: { axe: 0, sword: 0, fists: 0, eat: 0 },
+  };
+
+  // Enemy panel
+  document.getElementById('fight-enemy-name').textContent = monsterName.toLowerCase();
+  document.getElementById('fight-enemy-level').textContent = 'danger level: ' + baseFf;
+  document.getElementById('fs-threat-val').textContent = ff;
+  document.getElementById('fs-threat-bar').style.width = '100%';
+
+  // Clear log
+  document.getElementById('fight-log').innerHTML = '';
+  if (G.suit) flog('your armor increases your chance of success.', 'dim');
+  flog('a ' + monsterName.toLowerCase() + ' stands before you.', 'alert');
+  flogSep();
+
+  updateFightHp();
+  updateFightBtns();
+  document.getElementById('fight-screen').classList.add('visible');
+  G.inBattle = true;
+  updateActionButtons();
+  scheduleEnemyAttack();
+}
+
+function hideFightScreen() {
+  document.getElementById('fight-screen').classList.remove('visible');
+  fClearTimers();
+}
+
+// ── HP / strength panel ──
+function updateFightHp() {
+  const s = G.strength;
+  const el = document.getElementById('fs-strength');
+  if (!el) return;
+  el.textContent = s;
+  el.className = 'fight-stat-value' + (s < 10 ? ' critical' : s < 25 ? ' low' : '');
+  const bar = document.getElementById('fs-hp-bar');
+  if (bar) {
+    bar.style.width = Math.max(0, (s / 100) * 100) + '%';
+    bar.className = 'hp-bar' + (s < 10 ? ' critical' : s < 25 ? ' low' : '');
+  }
+  const sub = document.getElementById('fab-eat-sub');
+  if (sub) sub.textContent = G.food > 0 ? G.food + ' unit' + (G.food !== 1 ? 's' : '') + ' · +5 str' : 'no food';
+}
+
+// ── Show only available weapon buttons ──
+function updateFightBtns() {
+  const axeBtn   = document.getElementById('fab-axe');
+  const swordBtn = document.getElementById('fab-sword');
+  const fistsBtn = document.getElementById('fab-fists');
+  const eatBtn   = document.getElementById('fab-eat');
+  if (!axeBtn) return;
+
+  axeBtn.style.display   = G.axe   ? '' : 'none';
+  swordBtn.style.display = G.sword ? '' : 'none';
+  fistsBtn.style.display = (!G.axe && !G.sword) ? '' : 'none';
+
+  const now = Date.now();
+  if (G.axe)              axeBtn.disabled   = !_F.active || now < _F.cooldowns.axe;
+  if (G.sword)            swordBtn.disabled = !_F.active || now < _F.cooldowns.sword;
+  if (!G.axe && !G.sword) fistsBtn.disabled = !_F.active || now < _F.cooldowns.fists;
+  if (eatBtn)             eatBtn.disabled   = !_F.active || G.food <= 0 || now < _F.cooldowns.eat;
+}
+
+// ── Cooldown animation via rAF ──
+function animateCooldown(btnId, fillId, durationMs) {
+  const btn  = document.getElementById(btnId);
+  const fill = document.getElementById(fillId);
+  if (!btn || !fill) return;
+  btn.disabled = true;
+  btn.classList.remove('ready');
+  btn.classList.add('cooling');
+  const start = Date.now();
+  function frame() {
+    if (!_F.active) { fill.style.width = '0%'; btn.classList.remove('cooling'); return; }
+    const pct = Math.min(100, ((Date.now() - start) / durationMs) * 100);
+    fill.style.width = pct + '%';
+    if (pct < 100) {
+      _fTimers.push(requestAnimationFrame(frame));
+    } else {
+      fill.style.width = '0%';
+      btn.classList.remove('cooling');
+      btn.classList.add('ready');
+      btn.disabled = false;
+    }
+  }
+  _fTimers.push(requestAnimationFrame(frame));
+}
+
+// ── Player attacks ──
+function playerAttack(weapon) {
+  if (!_F.active) return;
+  const w = WEAPONS[weapon];
+  if (!w) return;
+  const fillId = 'cd-' + weapon;
+  const btnId  = 'fab-' + weapon;
+  _F.cooldowns[weapon] = Date.now() + w.cd;
+  animateCooldown(btnId, fillId, w.cd);
+
+  const oldFf = _F.ff;
+  _F.ff = w.reduce(_F.ff);
+  if (_F.ff < oldFf) {
+    flog('you strike with your ' + w.label + '. the monster staggers!', '');
+  } else {
+    flog('you swing your ' + w.label + ' wildly.', 'dim');
+  }
+  updateThreatBar();
+  if (Math.random() > 0.65) flog(pickFlavour(), 'danger');
+
+  // Check if this strike finishes the fight
+  if (Math.random() * 16 > _F.ff) resolveWin();
+}
+
+// ── Eat food ──
+function playerEat() {
+  if (!_F.active || G.food <= 0) return;
+  _F.cooldowns.eat = Date.now() + 3000;
+  animateCooldown('fab-eat', 'cd-eat', 3000);
+  G.food -= 1;
+  G.strength = Math.floor(G.strength + 5);
+  flog('you eat a unit of food. strength: ' + G.strength + '.', 'dim');
+  updateFightHp();
+}
+
+// ── Flee ──
+function doFightFlee() {
+  if (!_F.active) return;
+  if (Math.random() > 0.7) { flog('no! you must stand and fight!', 'danger'); return; }
+  _F.active = false;
+  fClearTimers();
+  hideFightScreen();
+  G.inBattle = false;
+  flog('you flee!', 'dim');
+  // Move to first available exit
+  const exits = ROOMS[G.room] || [];
+  const avail = [0,1,2,3,4,5].filter(i => exits[i]);
+  if (avail.length) enterRoom(exits[avail[Math.floor(Math.random() * avail.length)]]);
+  else fullRefresh();
+}
+
+// ── Enemy attack loop ──
+function scheduleEnemyAttack() {
+  if (!_F.active) return;
+  const dur = _F.enemyAttackMs;
+  const bar = document.getElementById('enemy-timer-bar');
+  const start = Date.now();
+  function timerFrame() {
+    if (!_F.active) { if(bar) bar.style.width='0%'; return; }
+    const pct = Math.min(100, ((Date.now() - start) / dur) * 100);
+    if (bar) bar.style.width = pct + '%';
+    if (pct < 100) _fTimers.push(requestAnimationFrame(timerFrame));
+  }
+  _fTimers.push(requestAnimationFrame(timerFrame));
+  const tid = setTimeout(() => { if (_F.active) enemyAttack(); }, dur);
+  _fTimers.push(tid);
+}
+
+function enemyAttack() {
+  if (!_F.active) return;
+  // Rare equipment loss events (lines 905-907)
+  if (Math.random() > 0.987 && G.light) {
+    G.light = false; flog('your torch was knocked from your hand!', 'danger');
+    updateFightHp(); updateFightBtns();
+  }
+  if (Math.random() > 0.987 && G.axe) {
+    G.axe = false; _F.ff = 5 * Math.floor(_F.ff / 4);
+    flog('you drop your axe in the heat of battle!', 'danger');
+    updateFightBtns(); updateThreatBar();
+  }
+  if (Math.random() > 0.987 && G.sword) {
+    G.sword = false; _F.ff = 4 * Math.floor(_F.ff / 3);
+    flog('your sword is knocked from your hand!!!', 'danger');
+    updateFightBtns(); updateThreatBar();
+  }
+  // Monster wounds player (BASIC line 930: 50%)
+  if (Math.random() > 0.5) {
+    G.strength -= 5;
+    flog('the ' + _F.monsterName.toLowerCase() + ' wounds you! strength: ' + Math.max(0, G.strength) + '.', 'danger');
+    updateFightHp();
+    if (G.strength < 10 && G.strength > 0) flog('warning — your strength is running low.', 'danger');
+    if (G.strength < 1) { G.strength = Math.floor(G.strength / 2); resolveLoss(); return; }
+  } else {
+    flog(pickFlavour(), 'danger');
+  }
+  scheduleEnemyAttack();
+}
+
+// ── Threat bar ──
+function updateThreatBar() {
+  const pct = Math.max(0, (_F.ff / _F.maxFf) * 100);
+  const bar = document.getElementById('fs-threat-bar');
+  const val = document.getElementById('fs-threat-val');
+  if (bar) bar.style.width = pct + '%';
+  if (val) val.textContent = _F.ff;
+}
+
+// ── Flavour ──
+const FLAVOUR = [
+  'will this be a battle to the death?',
+  'his eyes flash fearfully.',
+  'blood drips from his claws.',
+  'you smell the sulphur on his breath.',
+  'he strikes wildly, madly...',
+  'you have never fought an opponent like this!!',
+  'aaaaargh!!!',
+  'rip! tear! rip!',
+  'you want to run but you stand your ground...',
+  '*&%%$#$% $%#!! @ #$$# #$@! #$ $#$',
+];
+function pickFlavour() { return FLAVOUR[Math.floor(Math.random() * FLAVOUR.length)]; }
+
+// ── Win ──
+function resolveWin() {
+  _F.active = false; fClearTimers();
+  G.mk++; delete G.roomContents[G.room];
+  flogSep();
+  flog('you managed to kill the ' + _F.monsterName.toLowerCase() + '!', 'alert');
+  flog('monsters killed: ' + G.mk, 'dim');
+  if (_F.roomKey === -4 && !G.amulet) {
+    G.amulet = true;
+    flog('a magic amulet rolls from its hoard to your feet.', 'alert');
+  }
+  disableAllFightBtns();
+  addContinueBtn(true);
+}
+
+// ── Loss ──
+function resolveLoss() {
+  _F.active = false; fClearTimers();
+  flogSep();
+  flog('the ' + _F.monsterName.toLowerCase() + ' defeated you. strength halved to ' + G.strength + '.', 'danger');
+  updateFightHp();
+  disableAllFightBtns();
+  if (G.strength < 1) {
+    G.strength = 0;
+    const tid = setTimeout(() => { hideFightScreen(); triggerDeath(); }, 1400);
+    _fTimers.push(tid);
+  } else {
+    addContinueBtn(false);
+  }
+}
+
+function disableAllFightBtns() {
+  ['fab-axe','fab-sword','fab-fists','fab-eat','fab-flee'].forEach(id => {
+    const b = document.getElementById(id); if (b) b.disabled = true;
+  });
+}
+
+function addContinueBtn(won) {
+  const actions = document.querySelector('.fight-actions');
+  if (!actions) return;
+  // Remove any existing continue btn
+  const existing = actions.querySelector('.continue-btn');
+  if (existing) existing.remove();
+  const btn = document.createElement('button');
+  btn.className = 'fight-action-btn ready continue-btn';
+  btn.style.marginTop = '8px';
+  btn.innerHTML = '<span class="fab-key">↵</span>continue';
+  btn.onclick = () => {
+    hideFightScreen();
+    G.inBattle = false;
+    logSep();
+    log(won
+      ? 'you defeated the ' + _F.monsterName.toLowerCase() + '.'
+      : 'the ' + _F.monsterName.toLowerCase() + ' bested you. you withdraw.',
+      won ? 'alert' : 'danger');
+    fullRefresh();
+    document.removeEventListener('keydown', onEnter);
+  };
+  function onEnter(e) {
+    if ((e.key === 'Enter' || e.key === ' ') && !document.getElementById('overlay').classList.contains('visible')) {
+      btn.click();
+    }
+  }
+  document.addEventListener('keydown', onEnter);
+  actions.appendChild(btn);
+}
+
+// ── Entry point ──
 function doFight() {
   if (G.dead || G.won || G.inBattle) return;
   const k = G.roomContents[G.room];
-  if (k === undefined || k >= 0) { log("there is nothing to fight here.", 'dim'); return; }
-
+  if (k === undefined || k >= 0) { log('there is nothing to fight here.', 'dim'); return; }
   const mdata = MONSTERS[String(k)];
   if (!mdata) return;
-  let ff = mdata[1];
-
-  // Armor modifier (line 770: FF = 3*(INT(FF/4)))
-  if (G.suit) {
-    ff = 3 * Math.floor(ff / 4);
-    log("your armor increases your chance of success.", 'dim');
-  }
-
-  // Weapon selection (lines 790-850)
-  if (!G.axe && !G.sword) {
-    log("you have no weapons. you must fight with bare hands.", 'dim');
-    ff = Math.floor(ff + ff / 5); // line 790
-    runBattle(ff, mdata[0], k);
-    return;
-  }
-  if (G.axe && !G.sword) {
-    log("you have only an axe to fight with.", 'dim');
-    ff = 4 * Math.floor(ff / 5); // line 800
-    runBattle(ff, mdata[0], k);
-    return;
-  }
-  if (!G.axe && G.sword) {
-    log("you must fight with your sword.", 'dim');
-    ff = 3 * Math.floor(ff / 4); // line 810
-    runBattle(ff, mdata[0], k);
-    return;
-  }
-
-  // Both weapons — ask (lines 820-850)
-  showOverlay('choose weapon',
-    `<p>you face the <strong>${mdata[0].toLowerCase()}</strong>.</p><p>danger level: ${ff}</p>`,
-    `<button class="weapon-btn" onclick="hideOverlay();chooseFight(${k},${ff},'axe')">wield the axe</button>
-     <button class="weapon-btn" onclick="hideOverlay();chooseFight(${k},${ff},'sword')">draw the sword</button>`
-  );
+  showFightScreen(mdata[0], mdata[1], k);
 }
 
-function chooseFight(k, ff, weapon) {
-  const mdata = MONSTERS[String(k)];
-  if (weapon === 'axe')   ff = 4 * Math.floor(ff / 5);
-  if (weapon === 'sword') ff = 3 * Math.floor(ff / 4);
-  runBattle(ff, mdata[0], k);
-}
+// Compatibility stubs
+function chooseFightWeapon(w) { playerAttack(w); }
+function doFightScreenFlee()  { doFightFlee(); }
 
-// THE BATTLE — lines 870-970 (updated BASIC)
-function runBattle(ff, monsterName, roomKey) {
-  G.inBattle = true;
-  updateActionButtons();
 
-  logSep();
-  log('*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*_*', 'separator');
-
-  let t = 100;
-  let round = 0;
-  const MAX_ROUNDS = 12;
-
-  function battleRound() {
-    if (G.strength < 1) {
-      log(`the ${monsterName.toLowerCase()} defeated you.`, 'danger', t);
-      G.strength = Math.floor(G.strength / 2);
-      setTimeout(() => triggerDeath(), t + 400);
-      return;
-    }
-
-    round++;
-
-    // Line 890: attack direction random
-    log(Math.random() > 0.5 ? `${monsterName.toLowerCase()} attacks!` : "you attack the monster!", 'danger', t);
-    t += 500;
-
-    // Line 905: torch knocked out during battle (~1.3% per round ≈ 5% over 4 rounds)
-    if (Math.random() > 0.987 && G.light) {
-      G.light = false;
-      log("your torch was knocked from your hand!", 'danger', t);
-      t += 400;
-    }
-
-    // Line 906: axe dropped during battle (~1.3% per round ≈ 5% over 4 rounds)
-    if (Math.random() > 0.987 && G.axe) {
-      G.axe = false;
-      ff = 5 * Math.floor(ff / 4);
-      log("you drop your axe in the heat of battle!", 'danger', t);
-      t += 400;
-    }
-
-    // Line 907: sword knocked away (~1.3% per round ≈ 5% over 4 rounds)
-    if (Math.random() > 0.987 && G.sword) {
-      G.sword = false;
-      ff = 4 * Math.floor(ff / 3);
-      log("your sword is knocked from your hand!!!", 'danger', t);
-      t += 400;
-    }
-
-    // Line 910: player wounds monster
-    if (Math.random() > 0.5) {
-      ff = Math.floor(5 * ff / 6);
-      log("you manage to wound it.", '', t);
-      t += 400;
-    }
-
-    // Lines 911-919: probabilistic flavour lines
-    if (Math.random() > 0.95) { log("aaaaargh!!!", 'danger', t); t += 300; log("rip! tear! rip!", 'danger', t); t += 300; }
-    if (Math.random() > 0.9)  { log("you want to run but you stand your ground...", 'danger', t); t += 300; }
-    if (Math.random() > 0.9)  { log("*&%%$#$% $%#!! @ #$$# #$@! #$ $#$", 'danger', t); t += 300; }
-    if (Math.random() > 0.7)  { log("will this be a battle to the death?", 'danger', t); t += 300; }
-    if (Math.random() > 0.7)  { log("his eyes flash fearfully.", 'danger', t); t += 300; }
-    if (Math.random() > 0.7)  { log("blood drips from his claws.", 'danger', t); t += 300; }
-    if (Math.random() > 0.7)  { log("you smell the sulphur on his breath.", 'danger', t); t += 300; }
-    if (Math.random() > 0.7)  { log("he strikes wildly, madly...........", 'danger', t); t += 300; }
-    if (Math.random() > 0.7)  { log("you have never fought an opponent like this!!", 'danger', t); t += 300; }
-
-    // Line 930: monster wounds player
-    if (Math.random() > 0.5) {
-      G.strength -= 5;
-      log(`the monster wounds you! strength: ${Math.max(0, G.strength)}.`, 'danger', t);
-      t += 400;
-      if (G.strength < 1) {
-        G.strength = Math.floor(G.strength / 2);
-        log(`the ${monsterName.toLowerCase()} defeated you.`, 'danger', t);
-        setTimeout(() => triggerDeath(), t + 500);
-        setTimeout(fullRefresh, t);
-        return;
-      }
-    }
-
-    // Line 940: loop or resolve
-    if (Math.random() > 0.35 && round < MAX_ROUNDS) {
-      setTimeout(battleRound, t);
-      setTimeout(fullRefresh, t);
-    } else {
-      if (Math.random() * 16 > ff) {
-        // Player wins (line 950)
-        G.mk++;
-        delete G.roomContents[G.room];
-        log(`and you managed to kill the ${monsterName.toLowerCase()}!`, 'alert', t);
-        log(`monsters killed: ${G.mk}`, 'dim', t + 100);
-        if (roomKey === -4 && !G.amulet) {
-          G.amulet = true;
-          log("as the ice dragon falls, a magic amulet rolls from its hoard to your feet.", 'alert', t + 250);
-        }
-      } else {
-        // Monster wins (line 960)
-        G.strength = Math.floor(G.strength / 2);
-        log(`the ${monsterName.toLowerCase()} defeated you. strength halved.`, 'danger', t);
-        if (G.strength < 1) {
-          G.strength = 0;
-          setTimeout(() => triggerDeath(), t + 500);
-          setTimeout(fullRefresh, t);
-          return;
-        }
-      }
-      G.inBattle = false;
-      setTimeout(fullRefresh, t + 200);
-      logSep(t + 150);
-    }
-  }
-
-  battleRound();
-}
-
-// ══════════════════════════════════════════════
-// RUN / FLEE — lines 560-570, 2420-2460
 // ══════════════════════════════════════════════
 function doRun() {
   if (G.dead || G.won || G.inBattle) return;
@@ -1528,6 +1953,17 @@ function fleeDir(dir) {
 function doPickup() {
   if (G.dead || G.won) return;
 
+  // Guard's torch in room 13 — only available if player has no torch
+  if (G.room === 13 && G.guardTorch && !G.light) {
+    G.light = true;
+    G.guardTorch = false;
+    log("you take the guard's torch from the wall. it still burns!", 'alert');
+    logSep();
+    describeRoom(13);
+    fullRefresh();
+    return;
+  }
+
   // Check for scavengeable food first (rooms 7 and 8)
   const scavenge = G.foodRooms && G.foodRooms[G.room];
   if (scavenge) {
@@ -1541,8 +1977,19 @@ function doPickup() {
   const k = G.roomContents[G.room];
   // Line 2360: K<10 means no treasure (treasure values are >9)
   if (k === undefined || k < 10) { log("there is no treasure to pick up.", 'dim'); return; }
-  // Line 2370: need light to pick up
-  if (!G.light) { log("you cannot see where it is.", 'dim'); return; }
+  // Line 2370: need light to pick up — but 5% chance of finding it by touch in the dark
+  if (!G.light) {
+    if (Math.random() < 0.05) {
+      G.wealth += k;
+      log("you grope around in the darkness and your fingers close on something...", 'dim');
+      log(`you found the treasure by touch! wealth is now $${G.wealth}.`, 'alert');
+      delete G.roomContents[G.room];
+      fullRefresh();
+    } else {
+      log("you fumble around in the dark but cannot find it.", 'dim');
+    }
+    return;
+  }
   G.wealth += k;
   log(`you pick up the treasure. wealth is now $${G.wealth}.`, 'alert');
   delete G.roomContents[G.room];

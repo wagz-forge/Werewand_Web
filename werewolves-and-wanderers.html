@@ -125,26 +125,28 @@
   #fight-screen.visible { display: flex; }
 
   #fight-header {
-    padding: 14px 24px 10px;
+    padding: 12px 24px 10px;
     border-bottom: 1px solid var(--panel-border);
     font-size: 10px;
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--dim);
+    flex-shrink: 0;
   }
 
-  #fight-body {
+  /* ── top half: stats + arena + enemy ── */
+  #fight-top {
     display: flex;
-    flex: 1;
-    min-height: 0;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--panel-border);
   }
 
-  /* left: player */
+  /* left stat panel */
   #fight-player {
-    width: 220px;
+    width: 180px;
     flex-shrink: 0;
     border-right: 1px solid var(--panel-border);
-    padding: 20px 18px;
+    padding: 16px 16px;
     display: flex;
     flex-direction: column;
   }
@@ -153,36 +155,163 @@
     letter-spacing: 0.2em;
     text-transform: uppercase;
     color: var(--dim);
-    margin-bottom: 12px;
+    margin-bottom: 10px;
   }
   .fight-stat {
     display: flex;
     justify-content: space-between;
     font-size: 12px;
-    margin-bottom: 5px;
+    margin-bottom: 4px;
   }
   .fight-stat-label { color: var(--dim); }
   .fight-stat-value { color: var(--fg); }
   .fight-stat-value.low      { color: #888; }
   .fight-stat-value.critical { color: #777; }
-
-  /* hp bar */
   .hp-bar-wrap {
-    margin: 6px 0 14px;
-    height: 3px;
-    background: #1a1a1a;
-    width: 100%;
+    margin: 5px 0 10px;
+    height: 3px; background: #1a1a1a; width: 100%;
   }
   .hp-bar {
-    height: 100%;
-    background: var(--fg);
+    height: 100%; background: var(--fg);
     transition: width 0.35s ease;
   }
   .hp-bar.low      { background: #666; }
   .hp-bar.critical { background: #444; }
 
-  /* action buttons with cooldown */
-  .fight-actions { margin-top: 10px; display: flex; flex-direction: column; gap: 7px; }
+  /* centre arena */
+  #fight-arena {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 10px;
+    position: relative;
+    min-width: 0;
+  }
+
+  #arena-field {
+    width: 100%;
+    max-width: 360px;
+    height: 60px;
+    position: relative;
+    display: flex;
+    align-items: center;
+  }
+
+  /* the track the icons slide along */
+  #arena-track {
+    position: absolute;
+    left: 0; right: 0;
+    height: 1px;
+    background: #1e1e1e;
+    top: 50%;
+  }
+
+  .arena-icon {
+    position: absolute;
+    font-size: 28px;
+    line-height: 1;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: left 0.18s ease-out, right 0.18s ease-out;
+    user-select: none;
+  }
+  #arena-player {
+    left: 4px;
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+  }
+  #arena-enemy {
+    right: 4px;
+    color: #888;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  /* flash on hit */
+  .arena-icon.hit {
+    animation: iconHit 0.25s ease-out;
+  }
+  @keyframes iconHit {
+    0%   { opacity: 1; }
+    40%  { opacity: 0.2; }
+    100% { opacity: 1; }
+  }
+
+  /* enemy attack timer below arena */
+  #enemy-timer-wrap { margin-top: 10px; width: 100%; max-width: 360px; }
+  #enemy-timer-label {
+    font-size: 10px; color: var(--dim);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-bottom: 4px; text-align: center;
+  }
+  #enemy-timer-bar-wrap { height: 2px; background: #1a1a1a; width: 100%; }
+  #enemy-timer-bar { height: 100%; width: 0%; background: #444; }
+
+  /* right enemy panel */
+  #fight-enemy {
+    width: 180px;
+    flex-shrink: 0;
+    border-left: 1px solid var(--panel-border);
+    padding: 16px 16px;
+    display: flex;
+    flex-direction: column;
+  }
+  #fight-enemy-name {
+    font-size: 12px; color: var(--accent);
+    margin-bottom: 3px; letter-spacing: 0.04em;
+  }
+  #fight-enemy-level { font-size: 11px; color: var(--dim); margin-bottom: 8px; }
+  .threat-bar-wrap {
+    margin: 4px 0 10px; height: 3px;
+    background: #1a1a1a; width: 100%;
+  }
+  .threat-bar { height: 100%; background: #555; transition: width 0.4s ease; }
+
+  /* ── bottom half: log + actions ── */
+  #fight-bottom {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* battle log */
+  #fight-log-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--panel-border);
+    min-width: 0;
+  }
+  #fight-log {
+    flex: 1; overflow-y: auto;
+    padding: 14px 18px; scroll-behavior: smooth;
+  }
+  #fight-log::-webkit-scrollbar { width: 3px; }
+  #fight-log::-webkit-scrollbar-thumb { background: #222; }
+  .fight-entry {
+    font-size: 12px; margin-bottom: 5px;
+    opacity: 0; animation: fadeIn 0.3s forwards; color: var(--fg);
+  }
+  .fight-entry.dim    { color: var(--dim); }
+  .fight-entry.danger { color: #aaa; font-style: italic; }
+  .fight-entry.alert  { color: var(--accent); }
+  .fight-entry.sep    { color: #1e1e1e; }
+
+  /* action buttons panel */
+  #fight-actions-panel {
+    width: 200px;
+    flex-shrink: 0;
+    padding: 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow-y: auto;
+  }
+  #fight-actions-panel h3 {
+    font-size: 10px; letter-spacing: 0.2em;
+    text-transform: uppercase; color: var(--dim);
+    margin-bottom: 6px;
+  }
 
   .fight-action-btn {
     position: relative;
@@ -200,107 +329,16 @@
     transition: border-color 0.1s;
   }
   .fight-action-btn:hover:not(:disabled) { border-color: #444; }
-  .fight-action-btn:disabled {
-    color: #444;
-    border-color: #1a1a1a;
-    cursor: default;
-  }
-  .fight-action-btn .fab-key {
-    color: var(--dim); margin-right: 6px; font-size: 10px;
-  }
-  .fight-action-btn .fab-sub {
-    font-size: 10px; color: var(--dim); float: right;
-  }
-  /* cooldown overlay sweeps left→right over the button */
+  .fight-action-btn:disabled { color: #444; border-color: #1a1a1a; cursor: default; }
+  .fight-action-btn .fab-key { color: var(--dim); margin-right: 6px; font-size: 10px; }
+  .fight-action-btn .fab-sub { font-size: 10px; color: var(--dim); float: right; }
   .cooldown-fill {
-    position: absolute;
-    top: 0; left: 0; bottom: 0;
-    width: 0%;
-    background: rgba(255,255,255,0.04);
+    position: absolute; top: 0; left: 0; bottom: 0;
+    width: 0%; background: rgba(255,255,255,0.04);
     pointer-events: none;
-    transition: none;
   }
-  .fight-action-btn.cooling .cooldown-fill {
-    /* width animated via JS requestAnimationFrame */
-  }
-  .fight-action-btn.ready {
-    border-color: #444;
-    color: var(--accent);
-  }
+  .fight-action-btn.ready { border-color: #444; color: var(--accent); }
   .fight-action-btn.ready .fab-key { color: #888; }
-
-  /* middle: battle log */
-  #fight-log-wrap {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    border-right: 1px solid var(--panel-border);
-    min-width: 0;
-  }
-  #fight-log {
-    flex: 1;
-    overflow-y: auto;
-    padding: 16px 20px;
-    scroll-behavior: smooth;
-  }
-  #fight-log::-webkit-scrollbar { width: 3px; }
-  #fight-log::-webkit-scrollbar-thumb { background: #222; }
-  .fight-entry {
-    font-size: 12px;
-    margin-bottom: 5px;
-    opacity: 0;
-    animation: fadeIn 0.3s forwards;
-    color: var(--fg);
-  }
-  .fight-entry.dim    { color: var(--dim); }
-  .fight-entry.danger { color: #aaa; font-style: italic; }
-  .fight-entry.alert  { color: var(--accent); }
-  .fight-entry.sep    { color: #1e1e1e; }
-
-  /* right: enemy */
-  #fight-enemy {
-    width: 220px;
-    flex-shrink: 0;
-    padding: 20px 18px;
-    display: flex;
-    flex-direction: column;
-  }
-  #fight-enemy-name {
-    font-size: 13px;
-    color: var(--accent);
-    margin-bottom: 3px;
-    letter-spacing: 0.04em;
-  }
-  #fight-enemy-level { font-size: 11px; color: var(--dim); margin-bottom: 10px; }
-
-  .threat-bar-wrap {
-    margin: 4px 0 16px;
-    height: 3px;
-    background: #1a1a1a;
-    width: 100%;
-  }
-  .threat-bar {
-    height: 100%;
-    background: #555;
-    transition: width 0.4s ease;
-  }
-
-  /* enemy attack timer bar */
-  #enemy-timer-wrap {
-    margin-top: 14px;
-  }
-  #enemy-timer-label {
-    font-size: 10px; color: var(--dim);
-    letter-spacing: 0.1em; text-transform: uppercase;
-    margin-bottom: 4px;
-  }
-  #enemy-timer-bar-wrap {
-    height: 3px; background: #1a1a1a; width: 100%;
-  }
-  #enemy-timer-bar {
-    height: 100%; width: 0%;
-    background: #555;
-  }
 
   /* ── RIGHT PANEL: status + actions ── */
   #side-panel {
@@ -628,9 +666,11 @@
 <!-- FIGHT SCREEN -->
 <div id="fight-screen">
   <div id="fight-header">// combat</div>
-  <div id="fight-body">
 
-    <!-- Player panel -->
+  <!-- top: stats + arena + enemy info -->
+  <div id="fight-top">
+
+    <!-- Player stats -->
     <div id="fight-player">
       <h3>You</h3>
       <div class="fight-stat">
@@ -638,36 +678,30 @@
         <span class="fight-stat-value" id="fs-strength">—</span>
       </div>
       <div class="hp-bar-wrap"><div class="hp-bar" id="fs-hp-bar" style="width:100%"></div></div>
-
-      <div class="fight-actions">
-        <button class="fight-action-btn" id="fab-axe"   onclick="playerAttack('axe')"   disabled>
-          <div class="cooldown-fill" id="cd-axe"></div>
-          <span class="fab-key">1</span>axe<span class="fab-sub">slow · heavy</span>
-        </button>
-        <button class="fight-action-btn" id="fab-sword" onclick="playerAttack('sword')" disabled>
-          <div class="cooldown-fill" id="cd-sword"></div>
-          <span class="fab-key">2</span>sword<span class="fab-sub">fast · sharp</span>
-        </button>
-        <button class="fight-action-btn" id="fab-fists" onclick="playerAttack('fists')" disabled>
-          <div class="cooldown-fill" id="cd-fists"></div>
-          <span class="fab-key">3</span>bare hands<span class="fab-sub">fastest · weak</span>
-        </button>
-        <button class="fight-action-btn" id="fab-eat"   onclick="playerEat()"           disabled>
-          <div class="cooldown-fill" id="cd-eat"></div>
-          <span class="fab-key">E</span>eat food<span class="fab-sub" id="fab-eat-sub">—</span>
-        </button>
-        <button class="fight-action-btn" id="fab-flee"  onclick="doFightFlee()">
-          <span class="fab-key">R</span>flee
-        </button>
+      <div class="fight-stat">
+        <span class="fight-stat-label">armor</span>
+        <span class="fight-stat-value" id="fs-armor">—</span>
+      </div>
+      <div class="fight-stat">
+        <span class="fight-stat-label">torch</span>
+        <span class="fight-stat-value" id="fs-torch">—</span>
       </div>
     </div>
 
-    <!-- Battle log -->
-    <div id="fight-log-wrap">
-      <div id="fight-log"></div>
+    <!-- Arena -->
+    <div id="fight-arena">
+      <div id="arena-field">
+        <div id="arena-track"></div>
+        <div class="arena-icon" id="arena-player">@</div>
+        <div class="arena-icon" id="arena-enemy">?</div>
+      </div>
+      <div id="enemy-timer-wrap">
+        <div id="enemy-timer-label">enemy attacks in</div>
+        <div id="enemy-timer-bar-wrap"><div id="enemy-timer-bar"></div></div>
+      </div>
     </div>
 
-    <!-- Enemy panel -->
+    <!-- Enemy stats -->
     <div id="fight-enemy">
       <h3>Enemy</h3>
       <div id="fight-enemy-name">—</div>
@@ -677,10 +711,38 @@
         <span class="fight-stat-label">threat</span>
         <span class="fight-stat-value" id="fs-threat-val">—</span>
       </div>
-      <div id="enemy-timer-wrap">
-        <div id="enemy-timer-label">attacks in</div>
-        <div id="enemy-timer-bar-wrap"><div id="enemy-timer-bar"></div></div>
-      </div>
+    </div>
+
+  </div>
+
+  <!-- bottom: log + action buttons -->
+  <div id="fight-bottom">
+
+    <div id="fight-log-wrap">
+      <div id="fight-log"></div>
+    </div>
+
+    <div id="fight-actions-panel">
+      <h3>Actions</h3>
+      <button class="fight-action-btn" id="fab-axe"   onclick="playerAttack('axe')"   disabled>
+        <div class="cooldown-fill" id="cd-axe"></div>
+        <span class="fab-key">1</span>hack<span class="fab-sub">slow · heavy</span>
+      </button>
+      <button class="fight-action-btn" id="fab-sword" onclick="playerAttack('sword')" disabled>
+        <div class="cooldown-fill" id="cd-sword"></div>
+        <span class="fab-key">2</span>slash<span class="fab-sub">fast · sharp</span>
+      </button>
+      <button class="fight-action-btn" id="fab-fists" onclick="playerAttack('fists')" disabled>
+        <div class="cooldown-fill" id="cd-fists"></div>
+        <span class="fab-key">3</span>punch<span class="fab-sub">fastest · weak</span>
+      </button>
+      <button class="fight-action-btn" id="fab-eat"   onclick="playerEat()"           disabled>
+        <div class="cooldown-fill" id="cd-eat"></div>
+        <span class="fab-key">E</span>eat food<span class="fab-sub" id="fab-eat-sub">—</span>
+      </button>
+      <button class="fight-action-btn" id="fab-flee"  onclick="doFightFlee()">
+        <span class="fab-key">R</span>flee
+      </button>
     </div>
 
   </div>
@@ -978,12 +1040,12 @@ const ROOM_DESC = [
 
 // Monsters: type -1..-6 per updated BASIC source (lines 380-416)
 const MONSTERS = {
-  '-1': ["Ferocious Werewolf",    5],
-  '-2': ["Fanatical Fleshgorger", 10],
-  '-3': ["Maloventy Maldemer",    15],
-  '-4': ["Devastating Ice-Dragon",20],
-  '-5': ["Horrendous Hodgepodger",25],
-  '-6': ["Ghastly Gruesomeness",  30],
+  '-1': ["Ferocious Werewolf",    5,  'W'],
+  '-2': ["Fanatical Fleshgorger", 10, 'F'],
+  '-3': ["Maloventy Maldemer",    15, 'M'],
+  '-4': ["Devastating Ice-Dragon",20, 'D'],
+  '-5': ["Horrendous Hodgepodger",25, 'H'],
+  '-6': ["Ghastly Gruesomeness",  30, 'G'],
 };
 
 // ══════════════════════════════════════════════
@@ -1601,8 +1663,39 @@ function flog(text, cls) {
 }
 function flogSep() { flog('────────────────────────', 'sep'); }
 
+// ── Arena icon animation ──
+// Slides player toward enemy (or enemy toward player), then springs back
+function arenaSlide(attacker) {
+  const playerEl = document.getElementById('arena-player');
+  const enemyEl  = document.getElementById('arena-enemy');
+  if (!playerEl || !enemyEl) return;
+
+  const field = document.getElementById('arena-field');
+  const W = field ? field.offsetWidth : 300;
+  const midPct = 38; // how far (% of width) to slide toward centre
+
+  if (attacker === 'player') {
+    playerEl.style.left = midPct + '%';
+    setTimeout(() => { playerEl.style.left = '4px'; }, 200);
+    // Flash enemy on hit
+    setTimeout(() => {
+      enemyEl.classList.add('hit');
+      setTimeout(() => enemyEl.classList.remove('hit'), 260);
+    }, 190);
+  } else {
+    // enemy slides left toward player
+    const slidePos = (100 - midPct);
+    enemyEl.style.right = slidePos + '%';
+    setTimeout(() => { enemyEl.style.right = '4px'; }, 200);
+    setTimeout(() => {
+      playerEl.classList.add('hit');
+      setTimeout(() => playerEl.classList.remove('hit'), 260);
+    }, 190);
+  }
+}
+
 // ── Open fight screen ──
-function showFightScreen(monsterName, baseFf, roomKey) {
+function showFightScreen(monsterName, baseFf, roomKey, monsterLetter) {
   fClearTimers();
 
   // Armor modifier (BASIC line 770)
@@ -1621,6 +1714,15 @@ function showFightScreen(monsterName, baseFf, roomKey) {
   document.getElementById('fight-enemy-level').textContent = 'danger level: ' + baseFf;
   document.getElementById('fs-threat-val').textContent = ff;
   document.getElementById('fs-threat-bar').style.width = '100%';
+
+  // Arena icons
+  const enemyIconEl = document.getElementById('arena-enemy');
+  if (enemyIconEl) {
+    enemyIconEl.textContent = monsterLetter || '?';
+    enemyIconEl.style.right = '4px'; // reset position
+  }
+  const playerIconEl = document.getElementById('arena-player');
+  if (playerIconEl) playerIconEl.style.left = '4px'; // reset position
 
   // Clear log
   document.getElementById('fight-log').innerHTML = '';
@@ -1653,6 +1755,10 @@ function updateFightHp() {
     bar.style.width = Math.max(0, (s / 100) * 100) + '%';
     bar.className = 'hp-bar' + (s < 10 ? ' critical' : s < 25 ? ' low' : '');
   }
+  const armorEl = document.getElementById('fs-armor');
+  if (armorEl) armorEl.textContent = G.suit ? 'yes' : 'none';
+  const torchEl = document.getElementById('fs-torch');
+  if (torchEl) torchEl.textContent = G.light ? 'lit' : 'none';
   const sub = document.getElementById('fab-eat-sub');
   if (sub) sub.textContent = G.food > 0 ? G.food + ' unit' + (G.food !== 1 ? 's' : '') + ' · +5 str' : 'no food';
 }
@@ -1713,6 +1819,7 @@ function playerAttack(weapon) {
 
   const oldFf = _F.ff;
   _F.ff = w.reduce(_F.ff);
+  arenaSlide('player');
   if (_F.ff < oldFf) {
     flog('you strike with your ' + w.label + '. the monster staggers!', '');
   } else {
@@ -1788,6 +1895,7 @@ function enemyAttack() {
   }
   // Monster wounds player (BASIC line 930: 50%)
   if (Math.random() > 0.5) {
+    arenaSlide('enemy');
     G.strength -= 5;
     flog('the ' + _F.monsterName.toLowerCase() + ' wounds you! strength: ' + Math.max(0, G.strength) + '.', 'danger');
     updateFightHp();
@@ -1861,7 +1969,7 @@ function disableAllFightBtns() {
 }
 
 function addContinueBtn(won) {
-  const actions = document.querySelector('.fight-actions');
+  const actions = document.getElementById('fight-actions-panel');
   if (!actions) return;
   // Remove any existing continue btn
   const existing = actions.querySelector('.continue-btn');
@@ -1897,7 +2005,7 @@ function doFight() {
   if (k === undefined || k >= 0) { log('there is nothing to fight here.', 'dim'); return; }
   const mdata = MONSTERS[String(k)];
   if (!mdata) return;
-  showFightScreen(mdata[0], mdata[1], k);
+  showFightScreen(mdata[0], mdata[1], k, mdata[2]);
 }
 
 // Compatibility stubs

@@ -1143,6 +1143,7 @@ function initState() {
     darkTally: 0,     // rooms visited without torch (worth 5pts each vs 3pts)
     mk: 0,            // MK=0 monsters killed
     monsterScore: 0,  // accumulated monster kill points (FF-weighted)
+    darkKillScore: 0, // bonus points for kills made without a torch
     light: false,     // LIGHT=0
     axe: false,       // AXE=0
     sword: false,     // SWORD=0
@@ -1664,12 +1665,21 @@ function enterRoom(r) {
     return;
   }
 
+  // Room 6 is always visible — moonlight outside
+  if (r === 6) G.seen[6] = true;
+
   // Special first-visit message for room 1 — shown regardless of torch
   if (r === 1 && firstVisit) {
     logSep();
     log("the front door closes behind you with a loud bang that echoes through the castle.", 'alert');
     log("despite your best efforts it will not open again.", 'alert');
     log("looks like you'll need to find another exit.", 'dim');
+    if (!G.light) {
+      setTimeout(() => {
+        log("as your eyes adjust, you realise the foyer is almost completely dark.", 'danger');
+        log("without a torch, you can barely make out your own hands.", 'danger');
+      }, 800);
+    }
   }
 
   logSep();
@@ -1678,8 +1688,11 @@ function enterRoom(r) {
 }
 
 function describeRoom(r) {
+  // Room 6 is outside the castle — the full moon provides enough light to see clearly
+  const effectiveLight = G.light || r === 6;
+
   // Without light, can't see anything (line 320)
-  if (!G.light) {
+  if (!effectiveLight) {
     log("it is too dark to see anything.", 'dim');
     const k = G.roomContents[r];
     if (k !== undefined && k < 0) {
@@ -1841,10 +1854,19 @@ function showFightScreen(monsterName, baseFf, roomKey, monsterLetter) {
 
   // Armor modifier (BASIC line 770)
   let ff = baseFf;
-  if (G.suit) ff = 3 * Math.floor(ff / 4);
+  if (G.suit) {
+    ff = 3 * Math.floor(ff / 4);
+  }
+
+  // Dark combat modifier — no torch gives the monster the advantage (+33% ff)
+  const fightingDark = !G.light;
+  if (fightingDark) {
+    ff = Math.floor(ff * 4 / 3);
+  }
 
   _F = {
     monsterName, ff, maxFf: ff, roomKey, active: true,
+    fightingDark,
     // Enemy attacks faster the higher the danger level
     enemyAttackMs: Math.max(1500, 4200 - ff * 55),
     cooldowns: { axe: 0, sword: 0, fists: 0, eat: 0 },
@@ -1868,6 +1890,10 @@ function showFightScreen(monsterName, baseFf, roomKey, monsterLetter) {
   // Clear log
   document.getElementById('fight-log').innerHTML = '';
   if (G.suit) flog('your armor increases your chance of success.', 'dim');
+  if (fightingDark) {
+    flog('you are fighting blind — the monster has the advantage.', 'danger');
+    flog('danger level increased to ' + ff + '.', 'danger');
+  }
   flog('a ' + monsterName.toLowerCase() + ' stands before you.', 'alert');
   flogSep();
 
@@ -2081,9 +2107,21 @@ function resolveWin() {
   const ffLevel = MONSTERS[String(_F.roomKey)] ? MONSTERS[String(_F.roomKey)][1] : 5;
   const killPts = 30 * Math.round(ffLevel / 5);
   G.monsterScore += killPts;
+
+  // Dark kill bonus — 50% extra for defeating a monster without a torch
+  let darkBonus = 0;
+  if (_F.fightingDark) {
+    darkBonus = Math.floor(killPts * 0.5);
+    G.darkKillScore += darkBonus;
+  }
+
   flogSep();
   flog('you managed to kill the ' + _F.monsterName.toLowerCase() + '!', 'alert');
-  flog('+' + killPts + ' points  (monsters killed: ' + G.mk + ')', 'dim');
+  if (darkBonus > 0) {
+    flog('+' + killPts + ' points  +' + darkBonus + ' dark bonus  (monsters: ' + G.mk + ')', 'dim');
+  } else {
+    flog('+' + killPts + ' points  (monsters killed: ' + G.mk + ')', 'dim');
+  }
   if (_F.roomKey === -4 && !G.amulet) {
     G.amulet = true;
     flog('a magic amulet rolls from its hoard to your feet.', 'alert');
@@ -2442,6 +2480,7 @@ function calcScore() {
        + 2  * G.wealth         // treasure collected
        + G.food                // food carried
        + G.monsterScore        // FF-weighted monster kills
+       + G.darkKillScore       // bonus for kills made without a torch
        + equipmentScore();     // equipment carried out
 }
 
@@ -2519,6 +2558,8 @@ function doTally() {
     log(`  food: ${G.food}`, 'dim');
   if (G.monsterScore > 0)
     log(`  monsters: ${G.monsterScore} (${G.mk} killed)`, 'dim');
+  if (G.darkKillScore > 0)
+    log(`  dark kill bonus: ${G.darkKillScore}`, 'dim');
   const eq = equipmentScore();
   if (eq > 0)
     log(`  equipment: ${eq}`, 'dim');
@@ -2598,7 +2639,7 @@ function triggerDeath() {
       <div style="margin-top:6px;font-size:11px;color:var(--dim)">
         exploration: ${G.tally} lit + ${G.darkTally} dark &nbsp;·&nbsp;
         strength: ${G.strength} &nbsp;·&nbsp; wealth: $${G.wealth} &nbsp;·&nbsp;
-        food: ${G.food} &nbsp;·&nbsp; monsters: ${G.mk} (${G.monsterScore}pts) &nbsp;·&nbsp;
+        food: ${G.food} &nbsp;·&nbsp; monsters: ${G.mk} (${G.monsterScore}pts${G.darkKillScore > 0 ? " +" + G.darkKillScore + " dark" : ""}) &nbsp;·&nbsp;
         equipment: ${equipmentScore()}pts
       </div>`;
     renderScores(entry);
@@ -2630,7 +2671,7 @@ function triggerWin() {
       <div style="margin-top:6px;font-size:11px;color:var(--dim)">
         exploration: ${G.tally} lit + ${G.darkTally} dark &nbsp;·&nbsp;
         strength: ${G.strength} &nbsp;·&nbsp; wealth: $${G.wealth} &nbsp;·&nbsp;
-        food: ${G.food} &nbsp;·&nbsp; monsters: ${G.mk} (${G.monsterScore}pts) &nbsp;·&nbsp;
+        food: ${G.food} &nbsp;·&nbsp; monsters: ${G.mk} (${G.monsterScore}pts${G.darkKillScore > 0 ? " +" + G.darkKillScore + " dark" : ""}) &nbsp;·&nbsp;
         equipment: ${equipmentScore()}pts
       </div>`;
     renderScores(entry);
@@ -2666,8 +2707,8 @@ function startGame() {
   setTimeout(() => {
     G.room = 6;
     G.visited[6] = true;
-    if (G.light) G.seen[6] = true;
-    if (G.light) G.tally++; else G.darkTally++;
+    G.seen[6] = true;       // room 6 is outside — moonlight means always visible
+    G.tally++;               // counts as lit exploration
     logSep();
     describeRoom(6);
     fullRefresh();

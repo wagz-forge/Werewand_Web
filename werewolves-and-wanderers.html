@@ -911,9 +911,9 @@ const ROOMS = [
   [0,8,0,0,0,0],          // room 7  kitchen
   [7,10,0,0,0,0],         // room 8  store room
   [0,19,0,0,0,10],        // room 9  lift  S→19, D→10
-  [8,0,11,0,0,0],         // room 10 rear vestibule  N→8, E→11
+  [8,0,11,25,0,0],        // room 10 rear vestibule  N→8, E→11, W→25 (gated by search)
   [0,0,0,10,0,0],         // room 11 EXIT — win room  W→10
-  [0,0,0,13,0,0],         // room 12 dungeon  W→13
+  [0,0,25,13,0,0],        // room 12 dungeon  E→25 (gated by search), W→13
   [0,0,12,0,5,0],         // room 13 guardroom  E→12, U→5
   [0,15,18,0,0,0],        // room 14 master bedroom  S→15, E→18
   [14,0,0,0,0,5],         // room 15 upper hall  N→14, D→5
@@ -922,7 +922,12 @@ const ROOMS = [
   [0,0,17,14,0,0],        // room 18 dressing chamber  E→17, W→14
   [9,0,0,16,0,0],         // room 19 lift anteroom  N→9, W→16
   [0,7,0,0,0,0],          // room 20 secret herb garden  S→7 (one-way via amulet)
-  [2,0,0,0,0,0],          // room 21 gallery  N→2
+  [2,0,0,0,26,0],         // room 21 gallery  N→2, U→26 (after search)
+  [0,0,23,0,0,0],         // room 22 lounge  E→23
+  [0,0,0,22,0,0],         // room 23 dining room  W→22
+  [0,0,0,0,0,0],          // room 24 stables — no exits yet
+  [0,0,10,0,0,12],        // room 25 courtyard  E→10 (after search), D→12 (hole, after search)
+  [0,0,0,0,0,21],         // room 26 attic  D→21
 ];
 
 const DIR_INDEX = {N:0, S:1, E:2, W:3, U:4, D:5};
@@ -951,6 +956,11 @@ const ROOM_NAMES = [
   'the lift anteroom',
   'the secret herb garden',
   'the gallery',
+  'the lounge',
+  'the dining room',
+  'the stables',
+  'the courtyard',
+  'the attic',
 ];
 
 // Room descriptions — updated from revised BASIC source
@@ -1026,11 +1036,17 @@ const ROOM_DESC = [
   // 9 lift (handled specially in enterRoom)
   () => ["you have entered the lift..."],
   // 10 rear vestibule
-  () => [
-    "you are in the rear vestibule.",
-    "there are windows to the south from which you can see the ornamental lake.",
-    "there is an exit to the east and one to the north.",
-  ],
+  () => {
+    const lines = [
+      "you are in the rear vestibule.",
+      "there are windows to the south from which you can see the ornamental lake.",
+      "there is an exit to the east and one to the north.",
+    ];
+    if (G.room10searched) {
+      lines.push("the wrought iron gate to the west stands open, leading to the courtyard.");
+    }
+    return lines;
+  },
   // 11 — empty, the exit (win condition triggered on entry)
   () => [],
   // 12 dungeon
@@ -1040,6 +1056,9 @@ const ROOM_DESC = [
       "there is a single exit, a small hole in the wall towards the west.",
     ];
     if (Math.random() > 0.4) lines.push("...a hollow, dry chuckle is heard from the guard room....");
+    if (G.room12searched) {
+      lines.push("a small hole in the east wall leads to the courtyard.");
+    }
     return lines;
   },
   // 13 guardroom
@@ -1101,20 +1120,90 @@ const ROOM_DESC = [
     "you can see the lake through the southern windows.",
   ],
   // 20 secret herb garden (accessible via amulet from room 18)
-  () => [
-    "you find yourself in the secret herb garden to the north of the castle.",
-    "the walls enclosing this garden are too high to scale.",
-    "the air is cool and damp, and smells refreshing.",
-    "there is a small treasure box between two of the planting beds near the castle wall.",
-  ],
+  () => {
+    const lines = [
+      "you find yourself in the secret herb garden to the north of the castle.",
+      "the walls enclosing this garden are too high to scale.",
+      "the air is cool and damp, and smells refreshing.",
+    ];
+    if (G.room20searched) {
+      lines.push("a small treasure box sits between two of the planting beds near the castle wall.");
+    } else {
+      lines.push("neat rows of herbs and plants fill the beds, undisturbed for many years.");
+    }
+    return lines;
+  },
   // 21 gallery
+  () => {
+    const lines = [
+      "you are in the gallery. tall windows on the south wall look out over the grounds and the ornamental lake.",
+      "many worn and faded paintings adorn the walls, their subjects now unrecognisable.",
+      "a large, threadbare rug covers the centre of the floor.",
+      "from a window to the west, you can see the entrance to the castle — and you begin to wonder if coming here was a mistake.",
+      "a door to the north returns to the audience chamber.",
+    ];
+    if (G.room21searched) {
+      lines.push("a pull-down hatch is visible in the ceiling. a ladder leads up to the attic.");
+    }
+    return lines;
+  },
+  // 22 lounge
   () => [
-    "you are in the gallery. tall windows on the south wall look out over the grounds and the ornamental lake.",
-    "many worn and faded paintings adorn the walls, their subjects now unrecognisable.",
-    "a large, threadbare rug covers the centre of the floor.",
-    "from a window to the west, you can see the entrance to the castle — and you begin to wonder if coming here was a mistake.",
-    "a door to the north returns to the audience chamber.",
+    "you are in the lounge.",
+    "worn leather armchairs and a sagging sofa are arranged around a cold fireplace.",
+    "bookshelves line the walls, their volumes thick with dust.",
+    "through a window to the west you can see the entrance to the castle.",
+    "a door to the east leads to the dining room.",
   ],
+  // 23 dining room
+  () => [
+    "you are in the dining room.",
+    "a vast ornate table dominates the room, still laid with place settings for a banquet that never came.",
+    "tarnished silverware and cracked china line the table in eerie silence.",
+    "windows to the north look out over the herb garden.",
+    "a door to the west leads back to the lounge.",
+    "there is a door to the south that leads to the kitchen, but it is locked fast and will not yield.",
+  ],
+  // 24 stables
+  () => {
+    const lines = [
+      "you are in the stables. the stalls are empty, their occupants long gone.",
+      "a thin scattering of old straw covers the stone floor.",
+    ];
+    if (Math.random() > 0.5) lines.push("you can hear the squeaking of mice in the hayloft.");
+    return lines;
+  },
+  // 25 courtyard
+  () => {
+    const lines = [
+      "you step into a large open courtyard.",
+      "a stone fountain stands at the centre, dry and cracked, with a weathered figure at its top.",
+      "sculptures line the walls, half-obscured by creeping ivy.",
+      "decorative trees and carefully shaped topiaries frame a winding gravel path.",
+    ];
+    if (Math.random() > 0.5) lines.push("the gravel crunches loudly underfoot — you feel exposed out here.");
+    lines.push("to the east, a gate leads to the rear vestibule and what appears to be a way out of the castle.");
+    lines.push("to the south, a large metal gate beneath the rampart looks out over the grounds and the lake.");
+    if (G.room25searched) {
+      lines.push("a small hole in the base of the north wall leads down to the dungeon.");
+    }
+    return lines;
+  },
+  // 26 attic
+  () => {
+    const lines = [
+      "you are in the attic. bare timber beams run low overhead, and the floor creaks under every step.",
+      "the space is cluttered with old trunks, broken furniture, and years of forgotten debris.",
+    ];
+    if (Math.random() > 0.4) lines.push("dust motes hang in the dim light filtering through gaps in the roof tiles.");
+    if (G.roomContents[26] !== undefined && G.roomContents[26] > 9) {
+      lines.push("a large, banded chest sits against the far wall, half-buried under old cloth.");
+    } else {
+      lines.push("a large chest sits against the far wall, its lid hanging open and empty.");
+    }
+    lines.push("a ladder leads down through a hatch to the gallery below.");
+    return lines;
+  },
 ];
 
 // Monsters: type -1..-6 per updated BASIC source (lines 380-416)
@@ -1154,16 +1243,21 @@ function initState() {
     dead: false,
     won: false,
     inBattle: false,
-    room3searched: false,  // true once player discovers the hidden door in room 3
-    seen: {},              // rooms actually seen with a light source — drives map fog-of-war
+    room3searched: false,   // true once player discovers the hidden door in room 3
+    room10searched: false,  // true once player finds the courtyard gate in rear vestibule
+    room12searched: false,  // true once player finds the hole to the courtyard in the dungeon
+    room20searched: false,  // true once player searches the herb garden
+    room21searched: false,  // true once player finds the attic hatch in the gallery
+    room25searched: false,  // true once player finds the dungeon hole in the courtyard
+    seen: {},               // rooms actually seen with a light source — drives map fog-of-war
   };
 
   // ALLOT TREASURE — 4 random rooms (lines 2850-2890)
-  // Rooms 6, 11, 20, 21 excluded; no double-allotting
+  // Rooms 6, 11, 20, 21, 22, 23, 24, 25, 26 excluded; no double-allotting
   let treasureCount = 0;
   while (treasureCount < 4) {
     const m = Math.floor(Math.random() * 19) + 1;
-    if (m === 6 || m === 11 || m === 20 || m === 21 || G.roomContents[m]) continue;
+    if (m === 6 || m === 11 || m === 20 || m === 21 || m === 22 || m === 23 || G.roomContents[m]) continue;
     G.roomContents[m] = Math.floor(Math.random() * 100) + 10; // $10-$109
     treasureCount++;
   }
@@ -1172,7 +1266,7 @@ function initState() {
   for (let j = 1; j <= 4; j++) {
     let m;
     do { m = Math.floor(Math.random() * 18) + 1; }
-    while (m === 6 || m === 11 || m === 20 || m === 21 || G.roomContents[m]);
+    while (m === 6 || m === 11 || m === 20 || m === 21 || m === 22 || m === 23 || m === 24 || m === 25 || m === 26 || G.roomContents[m]);
     G.roomContents[m] = -(Math.floor(Math.random() * 6) + 1); // -1 to -6
   }
 
@@ -1180,8 +1274,11 @@ function initState() {
   G.roomContents[4]  = 100 + Math.floor(Math.random() * 100); // meeting room $100-$199
   G.roomContents[16] = 100 + Math.floor(Math.random() * 100); // treasury $100-$199
 
-  // Secret herb garden (room 20) — guaranteed treasure $100-$300
+  // Secret herb garden (room 20) — guaranteed treasure $100-$300 (hidden until searched)
   G.roomContents[20] = 100 + Math.floor(Math.random() * 201);
+
+  // Attic (room 26) — large chest with guaranteed treasure $150-$250
+  G.roomContents[26] = 150 + Math.floor(Math.random() * 101);
 
   // Scavengeable food in kitchen (7) and store room (8) — 1 to 5 units each
   G.foodRooms = {
@@ -1251,7 +1348,15 @@ function updateExits() {
     if (!btn) return;
     let hasExit = exits[i] && exits[i] !== 0;
     // Hide north exit in room 3 until the hidden door is found
-    if (G.room === 3 && d === 'N' && !G.room3searched) hasExit = false;
+    if (G.room === 3  && d === 'N' && !G.room3searched)  hasExit = false;
+    // Hide up exit in room 21 until the attic hatch is found
+    if (G.room === 21 && d === 'U' && !G.room21searched) hasExit = false;
+    // Hide west exit in room 10 until the courtyard gate is found
+    if (G.room === 10 && d === 'W' && !G.room10searched) hasExit = false;
+    // Hide east exit in room 12 until the dungeon hole is found
+    if (G.room === 12 && d === 'E' && !G.room12searched) hasExit = false;
+    // Hide down exit in room 25 until the courtyard hole is found
+    if (G.room === 25 && d === 'D' && !G.room25searched) hasExit = false;
     btn.classList.toggle('unavailable', !hasExit);
   });
 }
@@ -1266,12 +1371,16 @@ function updateActionButtons() {
   const hasTreasure   = k !== undefined && k > 9;
   const hasFood       = G.foodRooms && !!G.foodRooms[G.room];
   const hasGuardTorch = G.room === 13 && G.guardTorch && !G.light;
+  // Room 20 treasure is hidden until searched
+  const room20ready  = G.room === 20 && G.room20searched && k !== undefined && k > 9;
+  // Treat room 20 treasure as invisible until found
+  const hasTreasureVisible = hasTreasure && !(G.room === 20 && !G.room20searched);
   const canSearch     = G.strength > 5;
 
   // Side panel buttons
   document.getElementById('btn-fight').disabled  = !hasMonster || G.inBattle;
   document.getElementById('btn-run').disabled    = !hasMonster || G.inBattle;
-  document.getElementById('btn-pickup').disabled = !hasTreasure && !hasFood && !hasGuardTorch;
+  document.getElementById('btn-pickup').disabled = !hasTreasureVisible && !hasFood && !hasGuardTorch;
   document.getElementById('btn-eat').disabled    = G.food <= 0;
   document.getElementById('btn-magic').disabled  = !G.amulet;
 
@@ -1282,12 +1391,12 @@ function updateActionButtons() {
     b.disabled = disabled;
     b.classList.toggle('room-action-active', !!active && !disabled);
   }
-  syncRa('ra-fight',  !hasMonster || G.inBattle,               hasMonster);
-  syncRa('ra-run',    !hasMonster || G.inBattle,               hasMonster);
-  syncRa('ra-pickup', !hasTreasure && !hasFood && !hasGuardTorch, hasTreasure || hasFood || hasGuardTorch);
-  syncRa('ra-eat',    G.food <= 0,                             G.food > 0);
-  syncRa('ra-magic',  !G.amulet,                               G.amulet);
-  syncRa('ra-search', !canSearch,                              false);
+  syncRa('ra-fight',  !hasMonster || G.inBattle,                                    hasMonster);
+  syncRa('ra-run',    !hasMonster || G.inBattle,                                    hasMonster);
+  syncRa('ra-pickup', !hasTreasureVisible && !hasFood && !hasGuardTorch,             hasTreasureVisible || hasFood || hasGuardTorch);
+  syncRa('ra-eat',    G.food <= 0,                                                  G.food > 0);
+  syncRa('ra-magic',  !G.amulet,                                                    G.amulet);
+  syncRa('ra-search', !canSearch,                                                   false);
 }
 
 // ══════════════════════════════════════════════
@@ -1300,7 +1409,6 @@ function updateActionButtons() {
 // ASCII MAP — shows only the current floor
 // ══════════════════════════════════════════════
 
-// Floor definitions — includes inaccessible rooms for map display
 const FLOOR_OF = {
    1: 'ground',  2: 'ground',  3: 'ground',  4: 'ground',
    5: 'ground',  6: 'ground',  7: 'ground',  8: 'ground',
@@ -1333,7 +1441,7 @@ const ROOM_SPANS = {
    1: [1, 1],   // foyer
    3: [3, 1],   // great hall — 3 rows tall
    5: [3, 1],   // inner hall — 3 rows tall
-  10: [2, 2],   // rear vestibule — 2×2
+  10: [1, 2],   // rear vestibule — 1 tall × 2 wide
   11: [1, 1],   // exit
    2: [1, 1],   // audience chamber
   21: [1, 1],   // gallery
@@ -1367,8 +1475,8 @@ const FLOOR_LAYOUTS = {
      1: [3, 1],   // foyer
      3: [3, 2],   // great hall        spans 3×1
      5: [3, 3],   // inner hall        spans 3×1
-    10: [3, 5],   // rear vestibule    spans 2×2 (cols 5-6, note: right of 25)
-    11: [3, 7],   // exit
+    10: [3, 6],   // rear vestibule    spans 1×2 (cols 6-7)
+    11: [3, 8],   // exit              col 8
      2: [4, 1],   // audience chamber
     21: [5, 1],   // gallery
     24: [4, 6],   // stables           spans 2×2
@@ -1719,12 +1827,17 @@ function describeRoom(r) {
   const k = G.roomContents[r];
   if (k !== undefined) {
     if (k > 9) {
-      // Lines 355-360: M=RND — 50% chance gems, 50% chance treasure
-      const isGems = Math.random() <= 0.5;
-      const msg = isGems
-        ? `there are gems here worth $${k}.`
-        : `there is treasure here worth $${k}.`;
-      setTimeout(() => log(msg, 'alert'), lines_delay(descFn));
+      // Room 20 treasure is hidden until the player searches
+      if (r === 20 && !G.room20searched) {
+        // suppress — treasure not yet revealed
+      } else {
+        // Lines 355-360: M=RND — 50% chance gems, 50% chance treasure
+        const isGems = Math.random() <= 0.5;
+        const msg = isGems
+          ? `there are gems here worth $${k}.`
+          : `there is treasure here worth $${k}.`;
+        setTimeout(() => log(msg, 'alert'), lines_delay(descFn));
+      }
     } else if (k < 0) {
       // Monster (lines 370-430)
       const mdata = MONSTERS[String(k)];
@@ -1784,6 +1897,26 @@ function go(dir) {
   // Hidden door in room 3 — north exit only available after searching
   if (G.room === 3 && dir === 'N' && !G.room3searched) {
     log("there is nothing to the north but the throne. perhaps there is something worth investigating.", 'dim');
+    return;
+  }
+  // Attic hatch in room 21 — up exit only available after searching
+  if (G.room === 21 && dir === 'U' && !G.room21searched) {
+    log("there is no obvious way up. perhaps a closer look around would help.", 'dim');
+    return;
+  }
+  // Courtyard gate in room 10 — west exit only available after searching
+  if (G.room === 10 && dir === 'W' && !G.room10searched) {
+    log("the west wall looks solid. perhaps there is something worth investigating.", 'dim');
+    return;
+  }
+  // Hole in dungeon room 12 — east exit only available after searching
+  if (G.room === 12 && dir === 'E' && !G.room12searched) {
+    log("the east wall is solid stone. perhaps a closer look would reveal something.", 'dim');
+    return;
+  }
+  // Hole in courtyard room 25 — down only available after searching
+  if (G.room === 25 && dir === 'D' && !G.room25searched) {
+    log("you see no way down from here. perhaps there is something hidden nearby.", 'dim');
     return;
   }
   enterRoom(exits[idx]);
@@ -2270,6 +2403,11 @@ function doPickup() {
   const k = G.roomContents[G.room];
   // Line 2360: K<10 means no treasure (treasure values are >9)
   if (k === undefined || k < 10) { log("there is no treasure to pick up.", 'dim'); return; }
+  // Room 20 — treasure is hidden until the player searches for it
+  if (G.room === 20 && !G.room20searched) {
+    log("you can see nothing obvious to pick up. perhaps a closer look would help.", 'dim');
+    return;
+  }
   // Line 2370: need light to pick up — but 5% chance of finding it by touch in the dark
   if (!G.light) {
     if (Math.random() < 0.05) {
@@ -2506,7 +2644,7 @@ function doSearch() {
     return;
   }
 
-  // Hidden door in room 3
+  // Hidden door in room 3 — behind the throne
   if (G.room === 3) {
     if (G.room3searched) {
       log("you have already found the hidden door behind the throne.", 'dim');
@@ -2518,6 +2656,91 @@ function doSearch() {
         log("it is ajar. beyond it lies a dark passage leading north.", 'alert');
         fullRefresh();
       }, 600);
+    }
+    fullRefresh();
+    return;
+  }
+
+  // Wrought iron gate in room 10 — leads to courtyard
+  if (G.room === 10) {
+    if (G.room10searched) {
+      log("you have already found the gate to the courtyard.", 'dim');
+    } else {
+      G.room10searched = true;
+      log("you inspect the west wall carefully...", 'dim');
+      setTimeout(() => {
+        log("you find that the wrought iron gate is unlocked.", 'alert');
+        log("while it's difficult to move, you can gain access to the courtyard.", 'alert');
+        fullRefresh();
+      }, 600);
+    }
+    fullRefresh();
+    return;
+  }
+
+  // Hidden hole in room 12 dungeon — leads to courtyard
+  if (G.room === 12) {
+    if (G.room12searched) {
+      log("you have already found the hole in the east wall.", 'dim');
+    } else {
+      G.room12searched = true;
+      log("you feel along the damp east wall...", 'dim');
+      setTimeout(() => {
+        log("there is a small hole at the base of the wall.", 'alert');
+        log("it is just wide enough to squeeze through, leading to the courtyard.", 'alert');
+        fullRefresh();
+      }, 600);
+    }
+    fullRefresh();
+    return;
+  }
+
+  // Hidden hole in room 25 courtyard — leads down to dungeon
+  if (G.room === 25) {
+    if (G.room25searched) {
+      log("you have already found the hole in the north wall.", 'dim');
+    } else {
+      G.room25searched = true;
+      log("you search the base of the north wall...", 'dim');
+      setTimeout(() => {
+        log("you find a small hole worn through the old stonework.", 'alert');
+        log("it drops down into the dungeon below.", 'alert');
+        fullRefresh();
+      }, 600);
+    }
+    fullRefresh();
+    return;
+  }
+  if (G.room === 21) {
+    if (G.room21searched) {
+      log("the hatch to the attic is already open above you.", 'dim');
+    } else {
+      G.room21searched = true;
+      log("you look carefully around the gallery...", 'dim');
+      setTimeout(() => {
+        log("there, half-hidden beneath grime on the ceiling — a pull-down hatch!", 'alert');
+        log("a ladder leads up into the attic.", 'alert');
+        fullRefresh();
+      }, 600);
+    }
+    fullRefresh();
+    return;
+  }
+
+  // Hidden treasure in room 20 — the herb garden
+  if (G.room === 20) {
+    if (G.room20searched) {
+      log("you have already found the treasure box in the garden.", 'dim');
+    } else if (G.roomContents[20] !== undefined && G.roomContents[20] > 9) {
+      G.room20searched = true;
+      log("you part the herbs and search between the planting beds...", 'dim');
+      setTimeout(() => {
+        log("your hands find a small wooden box nestled against the castle wall.", 'alert');
+        log("it is locked but the latch is rusted through — it springs open.", 'alert');
+        fullRefresh();
+      }, 600);
+    } else {
+      log("you search through the garden beds but find nothing.", 'dim');
     }
     fullRefresh();
     return;

@@ -843,6 +843,9 @@
       <button class="action-btn" onclick="doTally()">
         <span class="key">T</span>tally score
       </button>
+      <button class="action-btn" id="btn-search" onclick="doSearch()">
+        <span class="key">X</span>search room
+      </button>
     </div>
 
   </div>
@@ -866,25 +869,27 @@
 // Stored as 0-indexed direction array [N,S,E,W,U,D] (contents handled separately)
 const ROOMS = [
   null,                    // 1-indexed padding
-  [0,2,0,0,0,0],          // room 1  hallway
-  [1,3,3,0,0,0],          // room 2  audience chamber
-  [2,0,5,2,0,0],          // room 3  great hall
-  [0,5,0,0,0,0],          // room 4  monarch's meeting room
-  [4,0,0,3,15,13],        // room 5  inner hallway
-  [0,0,1,0,0,0],          // room 6  castle entrance (start)
+  [0,2,0,0,0,0],          // room 1  foyer
+  [1,21,3,0,0,0],         // room 2  audience chamber  N→1, S→21, E→3
+  [4,0,5,2,0,0],          // room 3  great hall  N→4(hidden,one-way), E→5, W→2
+  [0,5,0,0,0,0],          // room 4  monarch's meeting room  S→5
+  [4,0,0,3,15,13],        // room 5  inner hall  N→4, W→3, U→15, D→13
+  [0,0,1,0,0,0],          // room 6  castle entrance  E→1
   [0,8,0,0,0,0],          // room 7  kitchen
   [7,10,0,0,0,0],         // room 8  store room
-  [0,19,0,0,0,8],         // room 9  lift
-  [8,0,11,0,0,0],         // room 10 rear vestibule
-  [0,0,10,0,0,0],         // room 11 EXIT — win room (empty per BASIC)
-  [0,0,0,13,0,0],         // room 12 dungeon
-  [0,0,12,0,5,0],         // room 13 guardroom
-  [0,15,17,0,0,0],        // room 14 master bedroom
-  [14,0,0,0,0,5],         // room 15 upper hallway
-  [17,0,19,0,0,0],        // room 16 treasury
-  [18,16,0,14,0,0],       // room 17 chambermaids' bedroom
-  [0,17,0,0,0,0],         // room 18 dressing chamber
-  [9,0,0,16,0,0],         // room 19 lift anteroom
+  [0,19,0,0,0,10],        // room 9  lift  S→19, D→10
+  [8,0,11,0,0,0],         // room 10 rear vestibule  N→8, E→11
+  [0,0,0,10,0,0],         // room 11 EXIT — win room  W→10
+  [0,0,0,13,0,0],         // room 12 dungeon  W→13
+  [0,0,12,0,5,0],         // room 13 guardroom  E→12, U→5
+  [0,15,18,0,0,0],        // room 14 master bedroom  S→15, E→18
+  [14,0,0,0,0,5],         // room 15 upper hall  N→14, D→5
+  [17,0,19,0,0,0],        // room 16 treasury  N→17, E→19
+  [0,16,0,18,0,0],        // room 17 chambermaids'  S→16, W→18
+  [0,0,17,14,0,0],        // room 18 dressing chamber  E→17, W→14
+  [9,0,0,16,0,0],         // room 19 lift anteroom  N→9, W→16
+  [0,7,0,0,0,0],          // room 20 secret herb garden  S→7 (one-way via amulet)
+  [2,0,0,0,0,0],          // room 21 gallery  N→2
 ];
 
 const DIR_INDEX = {N:0, S:1, E:2, W:3, U:4, D:5};
@@ -892,11 +897,11 @@ const DIR_NAMES = ['north','south','east','west','up','down'];
 
 const ROOM_NAMES = [
   null,
-  'the hallway',
+  'the foyer',
   'the audience chamber',
   'the great hall',
   "the monarch's meeting room",
-  'the inner hallway',
+  'the inner hall',
   'the castle entrance',
   'the kitchen',
   'the store room',
@@ -906,39 +911,50 @@ const ROOM_NAMES = [
   'the dark dungeon',
   'the prison guardroom',
   'the master bedroom',
-  'the upper hallway',
+  'the upper hall',
   'the treasury',
   "the chambermaids' bedroom",
   'the dressing chamber',
   'the lift anteroom',
+  'the secret herb garden',
+  'the gallery',
 ];
 
 // Room descriptions — updated from revised BASIC source
 const ROOM_DESC = [
   null,
-  // 1 hallway
+  // 1 foyer
   () => {
-    const lines = ["you are in the hallway."];
-    if (Math.random() > 0.4) lines.push("from the dust on the ground you can tell no-one has walked here for a long, long time.");
-    lines.push("there is a door to the south.");
-    lines.push("through windows to the north you can see a secret herb garden.");
+    const lines = [
+      "you are in the foyer. vaulted ceilings stretch up into shadow above you.",
+      "faded tapestries hang on the walls, their colours long since drained away.",
+    ];
+    if (Math.random() > 0.4) lines.push("a thick layer of dust covers the floor. no-one has walked here for a long, long time.");
+    lines.push("a door to the south leads deeper into the castle.");
+    lines.push("to the north, a heavy locked door is set into the wall. it will not budge — it may lead to a drawing room, but whatever lies beyond is sealed from you.");
     return lines;
   },
   // 2 audience chamber
   () => {
     const lines = ["this is the audience chamber."];
     if (Math.random() > 0.4) lines.push("the faded tapestries on the wall only hint at the splendor which this room once had.");
-    lines.push("there is a window to the west. by looking to the right through it you can see the entrance to the castle.");
+    lines.push("a door to the north returns to the foyer.");
+    lines.push("a door to the south leads to the gallery.");
+    lines.push("to the east, a doorway leads to the great hall.");
     return lines;
   },
-  // 3 great hall (L-shaped)
+  // 3 great hall
   () => {
     const lines = [
-      "you are in the great hall, an L-shaped room.",
-      "there are two doors in this room.",
-      "the wood panels are warped and faded...",
+      "you are in the great hall. the ceiling soars high above, and tall windows line the south wall, looking out over the lake.",
+      "a large table dominates the centre of the room. at the far north end, a plain wooden throne sits on a raised platform.",
     ];
     if (Math.random() > 0.4) lines.push("as you stand there, you hear a mouse scamper along the floor behind you... you whirl around... but see nothing!");
+    if (G.room3searched) {
+      lines.push("behind the throne, a hidden door stands open to the north.");
+    } else {
+      lines.push("a balcony runs along the upper part of the east wall. a doorway to the east leads to the inner hall.");
+    }
     return lines;
   },
   // 4 monarch's meeting room
@@ -948,13 +964,14 @@ const ROOM_DESC = [
     lines.push("there is a single exit to the south.");
     return lines;
   },
-  // 5 inner hallway
+  // 5 inner hall
   () => {
     const lines = [
-      "this inner hallway contains a door to the north, and one to the west, and a circular stairwell passes through the room.",
+      "this is the inner hall. a circular stairwell passes through the room, and a door to the north leads back toward the great hall.",
+      "windows in the east wall overlook a courtyard. across the courtyard you can see the rear vestibule — a possible exit from this wretched place.",
+      "unfortunately, you see no other way into that courtyard.",
     ];
     if (Math.random() > 0.6) lines.push("the room is small, and unfriendly.");
-    lines.push("you can see an ornamental lake through the windows to the south.");
     return lines;
   },
   // 6 entrance
@@ -1000,16 +1017,20 @@ const ROOM_DESC = [
   ],
   // 14 master bedroom
   () => [
-    "you are in the master bedroom on the upper level of the castle....",
-    "looking down from the window to the west you can see the entrance to the castle, while the secret herb garden is visible below the north window.",
-    "there are doors to the east and to the south....",
+    "you are in the master bedroom — a massive chamber on the upper level.",
+    "to the west, a wall of windows overlooks the front of the castle. the entrance is visible far below.",
+    "to the north, another wall of windows frames the herb garden.",
+    "two cold fireplaces flank the room, unused for many years.",
+    "a door to the east leads to the dressing chamber. a door to the south leads to the upper hall.",
   ],
-  // 15 upper hallway
+  // 15 upper hall
   () => {
-    const lines = ["this is the L-shaped upper hallway."];
+    const lines = ["this is the upper hall, an L-shaped corridor."];
     if (Math.random() > 0.4) lines.push("...a moth flits across near the ceiling...");
-    lines.push("to the north is a door, and there is a stairwell in the hall as well.");
-    lines.push("you can see the lake through the south windows.");
+    lines.push("the west side of the hall opens onto a balcony that overlooks the great hall below.");
+    lines.push("windows to the east look out over the courtyard.");
+    lines.push("a small south-facing window shows the lake glimmering in the moonlight.");
+    lines.push("two large doors to the north lead to the master bedroom. a stairwell descends to the ground floor.");
     return lines;
   },
   // 16 treasury
@@ -1020,21 +1041,46 @@ const ROOM_DESC = [
     return lines;
   },
   // 17 chambermaids' bedroom
-  () => [
-    "ooooh... you are in the chambermaids' bedroom.",
-    "faint perfume still hangs in the air...",
-    "there is an exit to the west and a door to the south....",
-  ],
+  () => {
+    const lines = [
+      "ooooh... you are in the chambermaids' bedroom.",
+      "faint perfume still hangs in the air...",
+      "a window to the north overlooks the herb garden.",
+      "a door to the south leads down to the treasury. a door to the west leads to the dressing chamber.",
+    ];
+    return lines;
+  },
   // 18 dressing chamber
-  () => [
-    "this tiny room on the upper level is the dressing chamber.",
-    "there is a window to the north, with a view of the herb garden down below.",
-    "a door leaves to the south.",
-  ],
+  () => {
+    const lines = [
+      "this is the dressing chamber, nestled between the master bedroom to the west and the chambermaids' room to the east.",
+      "a window to the south overlooks the courtyard.",
+    ];
+    if (Math.random() > 0.5) lines.push("wisps of fog drift over the lake beyond the courtyard wall, giving it an eerie glow in the moonlight.");
+    if (G.amulet) {
+      lines.push("the mirror in this room has an eerie shimmer. your amulet begins to feel warm.");
+    }
+    return lines;
+  },
   // 19 lift anteroom
   () => [
     "this is the small room outside the castle lift.",
     "you can see the lake through the southern windows.",
+  ],
+  // 20 secret herb garden (accessible via amulet from room 18)
+  () => [
+    "you find yourself in the secret herb garden to the north of the castle.",
+    "the walls enclosing this garden are too high to scale.",
+    "the air is cool and damp, and smells refreshing.",
+    "there is a small treasure box between two of the planting beds near the castle wall.",
+  ],
+  // 21 gallery
+  () => [
+    "you are in the gallery. tall windows on the south wall look out over the grounds and the ornamental lake.",
+    "many worn and faded paintings adorn the walls, their subjects now unrecognisable.",
+    "a large, threadbare rug covers the centre of the floor.",
+    "from a window to the west, you can see the entrance to the castle — and you begin to wonder if coming here was a mistake.",
+    "a door to the north returns to the audience chamber.",
   ],
 ];
 
@@ -1072,14 +1118,15 @@ function initState() {
     dead: false,
     won: false,
     inBattle: false,
+    room3searched: false,  // true once player discovers the hidden door in room 3
   };
 
   // ALLOT TREASURE — 4 random rooms (lines 2850-2890)
-  // Rooms 6 and 11 excluded; no double-allotting
+  // Rooms 6, 11, 20, 21 excluded; no double-allotting
   let treasureCount = 0;
   while (treasureCount < 4) {
     const m = Math.floor(Math.random() * 19) + 1;
-    if (m === 6 || m === 11 || G.roomContents[m]) continue;
+    if (m === 6 || m === 11 || m === 20 || m === 21 || G.roomContents[m]) continue;
     G.roomContents[m] = Math.floor(Math.random() * 100) + 10; // $10-$109
     treasureCount++;
   }
@@ -1088,13 +1135,16 @@ function initState() {
   for (let j = 1; j <= 4; j++) {
     let m;
     do { m = Math.floor(Math.random() * 18) + 1; }
-    while (m === 6 || m === 11 || G.roomContents[m]);
+    while (m === 6 || m === 11 || m === 20 || m === 21 || G.roomContents[m]);
     G.roomContents[m] = -(Math.floor(Math.random() * 6) + 1); // -1 to -6
   }
 
   // Fixed big treasures (lines 2970-2980)
   G.roomContents[4]  = 100 + Math.floor(Math.random() * 100); // meeting room $100-$199
   G.roomContents[16] = 100 + Math.floor(Math.random() * 100); // treasury $100-$199
+
+  // Secret herb garden (room 20) — guaranteed treasure $100-$300
+  G.roomContents[20] = 100 + Math.floor(Math.random() * 201);
 
   // Scavengeable food in kitchen (7) and store room (8) — 1 to 5 units each
   G.foodRooms = {
@@ -1162,7 +1212,9 @@ function updateExits() {
   ['N','S','E','W','U','D'].forEach((d, i) => {
     const btn = document.getElementById('btn-'+d);
     if (!btn) return;
-    const hasExit = exits[i] && exits[i] !== 0;
+    let hasExit = exits[i] && exits[i] !== 0;
+    // Hide north exit in room 3 until the hidden door is found
+    if (G.room === 3 && d === 'N' && !G.room3searched) hasExit = false;
     btn.classList.toggle('unavailable', !hasExit);
   });
 }
@@ -1196,14 +1248,17 @@ function updateActionButtons() {
 // ASCII MAP — shows only the current floor
 // ══════════════════════════════════════════════
 
-// Floor definitions
+// Floor definitions — includes inaccessible rooms for map display
 const FLOOR_OF = {
    1: 'ground',  2: 'ground',  3: 'ground',  4: 'ground',
    5: 'ground',  6: 'ground',  7: 'ground',  8: 'ground',
-   9: 'ground', 10: 'ground', 11: 'ground',
+   9: 'ground', 10: 'ground', 11: 'ground', 20: 'ground',
+  21: 'ground', 22: 'ground', 23: 'ground', 24: 'ground',
+  25: 'ground',
   12: 'basement', 13: 'basement',
   14: 'upper', 15: 'upper', 16: 'upper',
   17: 'upper', 18: 'upper', 19: 'upper',
+  26: 'upper',
 };
 
 const FLOOR_LABELS = {
@@ -1212,68 +1267,105 @@ const FLOOR_LABELS = {
   upper:    'upper floor',
 };
 
-// Per-floor room layouts: [row, col] (row 0 = north, col 0 = west)
-//
-// Stairwell alignment across floors (same col = same vertical shaft):
-//   Col 0: kitchen(7), store room(8), entrance(6), rear vestibule(10)
-//   Col 1: hallway(1), audience(2), exit(11)
-//   Col 2: lift(9), meeting room(4), inner hallway(5) ← STAIRWELL COL
-//           upper: upper hallway(15), treasury(16)
-//           basement: guardroom(13)
-//   Col 3: upper: chambermaids(17), lift anteroom(19)
-//           basement: dungeon(12)
-//   Col 4: upper: dressing chamber(18), master bedroom(14)
-//
+// Each room: [rowSpan, colSpan]
+const ROOM_SPANS = {
+   6: [6, 1],   // entrance/castle exterior — tall left column
+  20: [1, 6],   // herb garden — wide top row (cols 1-6)
+  23: [1, 3],   // dining room
+   7: [1, 3],   // kitchen
+  25: [4, 2],   // courtyard — tall, 4 rows × 2 cols
+  22: [1, 1],   // drawing room (locked)
+   4: [1, 2],   // meeting room
+   8: [1, 1],   // store room
+   9: [1, 1],   // lift
+   1: [1, 1],   // foyer
+   3: [3, 1],   // great hall — 3 rows tall
+   5: [3, 1],   // inner hall — 3 rows tall
+  10: [2, 2],   // rear vestibule — 2×2
+  11: [1, 1],   // exit
+   2: [1, 1],   // audience chamber
+  21: [1, 1],   // gallery
+  24: [2, 2],   // stables — 2×2
+  14: [2, 4],   // master bedroom — 2×4
+  18: [1, 1],   // dressing chamber
+  17: [1, 1],   // chambermaids' bedroom
+  15: [4, 2],   // upper hall — 4×2
+  16: [4, 1],   // treasury — 4 rows tall
+  19: [1, 1],   // lift anteroom
+  26: [2, 1],   // attic — 2×1
+  12: [1, 1],   // dungeon
+  13: [1, 1],   // guardroom
+};
+
+// Ground floor layout — col 0 = west, row 0 = north
+// Room 06 occupies col 0, rows 0-5 (the castle exterior / entrance column)
+// Room 20 occupies row 0, cols 1-6
+// All other rooms start at col 1+
 const FLOOR_LAYOUTS = {
   ground: {
-     7: [0, 0],  // kitchen
-     8: [1, 0],  // store room       S of kitchen
-     6: [2, 0],  // entrance         S of store room
-    10: [3, 0],  // rear vestibule   S of entrance
-    11: [3, 1],  // exit             E of rear vestibule
-     1: [2, 1],  // hallway          E of entrance
-     2: [4, 1],  // audience         S of hallway
-     4: [1, 2],  // meeting room     N of inner hallway (stairwell col)
-     5: [2, 2],  // inner hallway    stairwell col
-     9: [0, 2],  // lift             N of inner hallway (stairwell col)
-  // room 3: L-shape, south arm [5,1], east arm [4,2] — handled in renderMap
+     6: [0, 0],   // entrance column   spans 6×1
+    20: [0, 1],   // herb garden       spans 1×6
+    23: [1, 1],   // dining room       spans 1×3
+     7: [1, 4],   // kitchen           spans 1×3
+    22: [2, 1],   // drawing room
+     4: [2, 2],   // meeting room      spans 1×2
+    25: [2, 4],   // courtyard         spans 4×2
+     8: [2, 6],   // store room
+     9: [2, 7],   // lift
+     1: [3, 1],   // foyer
+     3: [3, 2],   // great hall        spans 3×1
+     5: [3, 3],   // inner hall        spans 3×1
+    10: [3, 5],   // rear vestibule    spans 2×2 (cols 5-6, note: right of 25)
+    11: [3, 7],   // exit
+     2: [4, 1],   // audience chamber
+    21: [5, 1],   // gallery
+    24: [4, 6],   // stables           spans 2×2
   },
   basement: {
-    13: [0, 2],  // guardroom        stairwell col — aligns with room 5 above
-    12: [0, 3],  // dungeon          E of guardroom
+    13: [0, 0],
+    12: [0, 1],
   },
   upper: {
-    15: [1, 2],  // upper hallway    stairwell col — aligns with room 5 below
-    16: [2, 2],  // treasury         S of upper hallway (stairwell col)
-    17: [1, 3],  // chambermaids'    E of upper hallway
-    19: [2, 3],  // lift anteroom    S of chambermaids / E of treasury
-    14: [0, 3],  // master bedroom   N of chambermaids
-    18: [0, 4],  // dressing chamber E of master bedroom
+     6: [0, 0],   // castle exterior column  spans 6×1
+    20: [0, 1],   // herb garden             spans 1×6
+    14: [1, 1],   // master bedroom          spans 2×4
+    18: [1, 5],   // dressing chamber
+    17: [1, 6],   // chambermaids' bedroom
+    15: [2, 2],   // upper hall              spans 4×2
+    25: [2, 4],   // courtyard               spans 4×2
+    16: [2, 6],   // treasury                spans 4×1
+     9: [2, 7],   // lift (placeholder)
+     1: [3, 1],   // foyer (placeholder, same physical space)
+     3: [3, 2],   // great hall (placeholder)
+    19: [3, 7],   // lift anteroom
+    26: [4, 1],   // attic                   spans 2×1
+    24: [4, 7],   // stables (placeholder)   spans 2×1
   },
 };
 
 // Per-floor corridor connections [roomA, roomB, 'h'|'v']
-// Room 3's special L corridors are drawn separately in renderMap
 const FLOOR_CONNECTIONS = {
   ground: [
-    [ 7,  8, 'v'],  // kitchen — store room
-    [ 8,  6, 'v'],  // store room — entrance
-    [ 6, 10, 'v'],  // entrance — rear vestibule
-    [10, 11, 'h'],  // rear vestibule — exit
-    [ 6,  1, 'h'],  // entrance — hallway
-    [ 1,  2, 'v'],  // hallway — audience
-    [ 4,  5, 'v'],  // meeting room — inner hallway
+    [20,  7, 'v'],   // herb garden — kitchen (one-way down, shown as corridor)
+    [ 7,  8, 'h'],   // kitchen — store room
+    [ 8, 10, 'v'],   // store room — rear vestibule
+    [10, 11, 'h'],   // rear vestibule — exit
+    [ 6,  1, 'h'],   // entrance — foyer
+    [ 1,  2, 'v'],   // foyer — audience
+    [ 2, 21, 'v'],   // audience — gallery
+    [ 2,  3, 'h'],   // audience — great hall
+    [ 3,  5, 'h'],   // great hall — inner hall
+    [ 4,  5, 'v'],   // meeting room — inner hall
   ],
   basement: [
-    [13, 12, 'h'],  // guardroom — dungeon
+    [13, 12, 'h'],
   ],
   upper: [
-    [15, 16, 'v'],  // upper hallway — treasury
-    [15, 17, 'h'],  // upper hallway — chambermaids
-    [14, 17, 'v'],  // master bedroom — chambermaids (same col)
-    [14, 18, 'h'],  // master bedroom — dressing chamber
-    [17, 19, 'v'],  // chambermaids — lift anteroom
-    [16, 19, 'h'],  // treasury — lift anteroom
+    [14, 15, 'v'],   // master bedroom — upper hall
+    [14, 18, 'h'],   // master bedroom — dressing
+    [18, 17, 'h'],   // dressing — chambermaids
+    [17, 16, 'v'],   // chambermaids — treasury
+    [16, 19, 'h'],   // treasury — lift anteroom
   ],
 };
 
@@ -1285,32 +1377,28 @@ function renderMap() {
   const floor = FLOOR_OF[G.room] || 'ground';
   const layout = FLOOR_LAYOUTS[floor];
   const connections = FLOOR_CONNECTIONS[floor] || [];
-
   if (legend) legend.textContent = FLOOR_LABELS[floor];
 
-  // Determine grid dimensions
+  const CW = 5;  // display chars per cell column
+  const CH = 2;  // display rows per cell row
+
+  // Compute grid bounds including spans
   let maxRow = 0, maxCol = 0;
-  for (const [r, c] of Object.values(layout)) {
-    if (r > maxRow) maxRow = r;
-    if (c > maxCol) maxCol = c;
+  for (const [rid, [row, col]] of Object.entries(layout)) {
+    const [rs, cs] = ROOM_SPANS[parseInt(rid)] || [1, 1];
+    maxRow = Math.max(maxRow, row + rs - 1);
+    maxCol = Math.max(maxCol, col + cs - 1);
   }
-  // Room 3 L-shape adds one extra row on ground floor
-  if (floor === 'ground') maxRow = Math.max(maxRow, 5);
 
-  const ROWS = maxRow + 1;
-  const COLS = maxCol + 1;
-  const CW = 5;
-  const CH = 2;
-  const DH = ROWS * CH;
-  const DW = COLS * CW + 1;
-
+  const DH = (maxRow + 1) * CH;
+  const DW = (maxCol + 1) * CW + 1;
   const grid = Array.from({length: DH}, () => Array(DW).fill({ch:' ', cls:null}));
 
   function write(dr, dc, str, cls) {
     for (let i = 0; i < str.length; i++) {
       const c = dc + i;
       if (c >= 0 && c < DW && dr >= 0 && dr < DH)
-        grid[dr][c] = { ch: str[i], cls };
+        grid[dr][c] = {ch: str[i], cls};
     }
   }
 
@@ -1319,101 +1407,95 @@ function renderMap() {
     if (G.visited[id]) return 'visited';
     return 'unvisited';
   }
-
-  function clsFor(state) {
-    return state === 'current' ? 'r-current'
-         : state === 'visited' ? 'r-visited'
-         : 'r-unvisited';
+  function clsFor(s) {
+    return s === 'current' ? 'r-current' : s === 'visited' ? 'r-visited' : 'r-unvisited';
   }
 
-  function drawBox(id, row, col) {
-    const dr = row * CH, dc = col * CW;
+  // Draw a room spanning [rowSpan × colSpan] cells
+  function drawRoom(id, row, col) {
+    const [rs, cs] = ROOM_SPANS[id] || [1, 1];
     const state = roomState(id);
     const cls = clsFor(state);
-    const lbl = id === 11 ? 'EX' : String(id).padStart(2,' ');
+    const dr0 = row * CH;
+    const dc0 = col * CW;
+    const H = rs * CH;
+    const W = cs * CW;
+    const lbl = id === 11 ? 'EX' : String(id).padStart(2, ' ');
+
     if (state === 'unvisited') {
-      write(dr,   dc, ' ░░░ ', cls);
-      write(dr+1, dc, ' ░░░ ', cls);
+      for (let r = dr0; r < dr0 + H; r++) {
+        let s = '';
+        for (let c = 0; c < W; c++) s += '░';
+        write(r, dc0, s, cls);
+      }
     } else {
-      write(dr,   dc, ' ╔═╗ ', cls);
-      write(dr+1, dc, ` ╚${lbl}╝ `, cls);
+      // Top border
+      write(dr0, dc0, '╔' + '═'.repeat(W - 2) + '╗', cls);
+      // Bottom border with label
+      const innerW = W - 2;
+      const pad = Math.max(0, Math.floor((innerW - lbl.length) / 2));
+      const bot = '╚' + ' '.repeat(pad) + lbl + ' '.repeat(innerW - pad - lbl.length) + '╝';
+      write(dr0 + H - 1, dc0, bot, cls);
+      // Side borders
+      for (let r = dr0 + 1; r < dr0 + H - 1; r++) {
+        write(r, dc0,         '║', cls);
+        write(r, dc0 + W - 1, '║', cls);
+      }
     }
   }
 
-  // Draw all standard rooms on this floor
+  // Draw all rooms
   for (const [rid, [row, col]] of Object.entries(layout)) {
-    drawBox(parseInt(rid), row, col);
+    drawRoom(parseInt(rid), row, col);
   }
 
-  // Draw L-shaped room 3 on ground floor
-  // South arm at [5,1], east arm at [4,2]
-  if (floor === 'ground') {
-    const state = roomState(3);
-    const cls = clsFor(state);
-    // South arm
-    const drs = 5*CH, dcs = 1*CW;
-    if (state === 'unvisited') {
-      write(drs,   dcs, ' ░░░ ', cls);
-      write(drs+1, dcs, ' ░░░ ', cls);
-    } else {
-      write(drs,   dcs, ' ╔═╗ ', cls);
-      write(drs+1, dcs, ' ╚ 3╝ ', cls);
-    }
-    // East arm
-    const dre = 4*CH, dce = 2*CW;
-    if (state === 'unvisited') {
-      write(dre,   dce, ' ░░░ ', cls);
-      write(dre+1, dce, ' ░░░ ', cls);
-    } else {
-      write(dre,   dce, ' ╔═╗ ', cls);
-      write(dre+1, dce, ' ╚ 3╝ ', cls);
-    }
-    // Room 2 [4,1] → south arm [5,1]: vertical connector
-    const vis23s = roomState(2) !== 'unvisited' && roomState(3) !== 'unvisited';
-    const c23s = vis23s ? 'r-conn-vis' : 'r-conn';
-    write(4*CH+2, 1*CW+2, '│', c23s);
-    write(5*CH-1, 1*CW+2, '│', c23s);
-    // Room 2 [4,1] → east arm [4,2]: horizontal connector (same row)
-    const c23e = vis23s ? 'r-conn-vis' : 'r-conn';
-    write(4*CH+1, 1*CW+4, '─', c23e);
-    write(4*CH+1, 2*CW,   '─', c23e);
-    // Inner hallway [2,2] → east arm [4,2]: vertical connector (2 rows gap)
-    const vis53 = roomState(5) !== 'unvisited' && roomState(3) !== 'unvisited';
-    const c53 = vis53 ? 'r-conn-vis' : 'r-conn';
-    write(2*CH+2, 2*CW+2, '│', c53);
-    write(3*CH,   2*CW+2, '│', c53);
-    write(3*CH+1, 2*CW+2, '│', c53);
-    write(4*CH-1, 2*CW+2, '│', c53);
-  }
+  // Corridor helpers
+  function spanOf(id) { return ROOM_SPANS[id] || [1, 1]; }
+  function posOf(id)  { return layout[id]; }
 
-  // Standard corridor functions
   function hCorridor(ra, rb) {
-    const pa = layout[ra], pb = layout[rb];
-    if (!pa || !pb || pa[0] !== pb[0]) return;
-    const dr = pa[0]*CH + 1;
-    const lc = Math.min(pa[1], pb[1]);
-    const rc = Math.max(pa[1], pb[1]);
+    const pa = posOf(ra), pb = posOf(rb);
+    if (!pa || !pb) return;
+    const [rsa, csa] = spanOf(ra);
+    const [rsb, csb] = spanOf(rb);
+    // Find shared row band
+    const aT = pa[0], aB = pa[0] + rsa - 1;
+    const bT = pb[0], bB = pb[0] + rsb - 1;
+    const sharedRow = Math.max(aT, bT);
+    if (sharedRow > Math.min(aB, bB)) return;
+    const dr = sharedRow * CH + 1;
+    // Left room's right pixel edge, right room's left pixel edge
+    const left  = pa[1] <= pb[1] ? ra : rb;
+    const right = pa[1] <= pb[1] ? rb : ra;
+    const lp = posOf(left),  [, lcs] = spanOf(left);
+    const rp = posOf(right);
+    const x1 = (lp[1] + lcs) * CW;
+    const x2 = rp[1] * CW - 1;
     const vis = roomState(ra) !== 'unvisited' && roomState(rb) !== 'unvisited';
     const cls = vis ? 'r-conn-vis' : 'r-conn';
-    write(dr, lc*CW+4, '─', cls);
-    for (let c = lc+1; c < rc; c++) write(dr, c*CW, '─────', cls);
-    write(dr, rc*CW,   '─', cls);
+    for (let x = x1; x <= x2; x++) write(dr, x, '─', cls);
   }
 
   function vCorridor(ra, rb) {
-    const pa = layout[ra], pb = layout[rb];
-    if (!pa || !pb || pa[1] !== pb[1]) return;
-    const dc = pa[1]*CW + 2;
-    const tr = Math.min(pa[0], pb[0]);
-    const br = Math.max(pa[0], pb[0]);
+    const pa = posOf(ra), pb = posOf(rb);
+    if (!pa || !pb) return;
+    const [rsa, csa] = spanOf(ra);
+    const [rsb, csb] = spanOf(rb);
+    // Find shared col band
+    const aL = pa[1], aR = pa[1] + csa - 1;
+    const bL = pb[1], bR = pb[1] + csb - 1;
+    const sharedCol = Math.max(aL, bL);
+    if (sharedCol > Math.min(aR, bR)) return;
+    const dc = sharedCol * CW + 2;
+    const top    = pa[0] <= pb[0] ? ra : rb;
+    const bottom = pa[0] <= pb[0] ? rb : ra;
+    const tp = posOf(top),   [trs] = spanOf(top);
+    const bp = posOf(bottom);
+    const y1 = (tp[0] + trs) * CH;
+    const y2 = bp[0] * CH - 1;
     const vis = roomState(ra) !== 'unvisited' && roomState(rb) !== 'unvisited';
     const cls = vis ? 'r-conn-vis' : 'r-conn';
-    write(tr*CH+2,  dc, '│', cls);
-    for (let r = tr+1; r < br; r++) {
-      write(r*CH,   dc, '│', cls);
-      write(r*CH+1, dc, '│', cls);
-    }
-    write(br*CH-1,  dc, '│', cls);
+    for (let y = y1; y <= y2; y++) write(y, dc, '│', cls);
   }
 
   for (const [ra, rb, type] of connections) {
@@ -1421,18 +1503,21 @@ function renderMap() {
     else              vCorridor(ra, rb);
   }
 
-  // Stair markers (↑ up / ↓ down / ↕ both)
+  // Stair markers
   function stairMark(id, sym) {
-    const p = layout[id];
+    const p = posOf(id);
     if (!p || roomState(id) === 'unvisited') return;
-    write(p[0]*CH+1, p[1]*CW+3, sym, 'r-conn-vis');
+    const [rs, cs] = spanOf(id);
+    const dr = (p[0] + rs - 1) * CH + 1;
+    const dc = (p[1] + cs - 1) * CW + 3;
+    write(dr, dc, sym, 'r-conn-vis');
   }
 
   if (floor === 'ground')   { stairMark(5, '↕'); stairMark(9, '↓'); }
   if (floor === 'basement') { stairMark(13, '↑'); }
   if (floor === 'upper')    { stairMark(15, '↑'); stairMark(19, '↓'); }
 
-  // Render grid to HTML
+  // Render to HTML
   let html = '';
   for (let r = 0; r < DH; r++) {
     let rowHtml = '', curCls = null, buf = '';
@@ -1453,8 +1538,6 @@ function renderMap() {
 function escMap(s) {
   return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-
-
 
 function fullRefresh() {
   updateStats();
@@ -1630,6 +1713,11 @@ function go(dir) {
   const k = G.roomContents[G.room];
   if (k !== undefined && k < 0) {
     log("you must fight or flee.", 'dim');
+    return;
+  }
+  // Hidden door in room 3 — north exit only available after searching
+  if (G.room === 3 && dir === 'N' && !G.room3searched) {
+    log("there is nothing to the north but the throne. perhaps there is something worth investigating.", 'dim');
     return;
   }
   enterRoom(exits[idx]);
@@ -2141,7 +2229,23 @@ function doMagic() {
   if (G.dead || G.won) return;
   if (!G.amulet) { log("you have no amulet.", 'dim'); return; }
 
-  // Skip room 6 (entrance), 9 (lift, special-cased), 11 (win room)
+  // Special: in the dressing chamber (18), the mirror reacts to the amulet
+  if (G.room === 18) {
+    log("the amulet blazes with light. the mirror ripples like water...", 'alert');
+    G.room = 20;
+    G.visited[20] = true;
+    G.strength -= 5;
+    G.tally++;
+    fullRefresh();
+    setTimeout(() => {
+      logSep();
+      describeRoom(20);
+      fullRefresh();
+    }, 400);
+    return;
+  }
+
+  // Normal random teleport — skip 6, 9, 11, 20
   let dest;
   do { dest = Math.floor(Math.random() * 19) + 1; }
   while (dest === 6 || dest === 9 || dest === 11);
@@ -2262,6 +2366,31 @@ function confirmBuyFood() {
 // ══════════════════════════════════════════════
 function calcScore() {
   return 3*G.tally + 5*G.strength + 2*G.wealth + G.food + 30*G.mk;
+}
+
+// ══════════════════════════════════════════════
+// SEARCH — reveals hidden door in room 3
+// ══════════════════════════════════════════════
+function doSearch() {
+  if (G.dead || G.won) return;
+
+  if (G.room === 3) {
+    if (G.room3searched) {
+      log("you have already found the hidden door behind the throne.", 'dim');
+    } else {
+      G.room3searched = true;
+      // Reveal the north exit (room 4)
+      log("you move carefully around the great throne...", 'dim');
+      setTimeout(() => {
+        log("behind the throne, set into the wall, is a hidden door.", 'alert');
+        log("it is ajar. beyond it lies a dark passage leading north.", 'alert');
+        fullRefresh();
+      }, 600);
+    }
+    return;
+  }
+
+  log("you search the room carefully, but find nothing of note.", 'dim');
 }
 
 function doTally() {
@@ -2390,7 +2519,7 @@ document.addEventListener('keydown', e => {
     N: ()=>go('N'), S: ()=>go('S'), E: ()=>go('E'), W: ()=>go('W'),
     U: ()=>go('U'), D: ()=>go('D'),
     F: doFight, R: doRun, P: doPickup, C: doEat, M: doMagic,
-    I: doShop, T: doTally,
+    I: doShop, T: doTally, X: doSearch,
     Q: () => { if (confirm('quit the castle?')) restartGame(); }
   };
   if (map[k]) { e.preventDefault(); map[k](); }

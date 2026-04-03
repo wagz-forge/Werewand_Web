@@ -447,6 +447,31 @@
   }
   .action-btn:disabled .key { color: #2a2a2a; }
 
+  /* compact action buttons in the Room section */
+  #room-actions {
+    display: flex;
+    gap: 4px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .room-action-btn {
+    background: transparent;
+    border: 1px solid var(--btn-border);
+    color: var(--dim);
+    font-family: inherit;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    padding: 4px 0;
+    width: 28px;
+    text-align: center;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+    text-transform: uppercase;
+  }
+  .room-action-btn:hover:not(:disabled) { color: var(--fg); border-color: #555; }
+  .room-action-btn:disabled { color: #222; border-color: #1a1a1a; cursor: default; }
+  .room-action-btn.room-action-active { color: var(--accent); border-color: #444; }
+
   /* INPUT overlay for name / shop / fight */
   #overlay {
     position: fixed; inset: 0;
@@ -779,6 +804,14 @@
         <button class="exit-btn unavailable" style="width:40px;" id="btn-U" onclick="go('U')" title="Up">U</button>
         <button class="exit-btn unavailable" style="width:40px;" id="btn-D" onclick="go('D')" title="Down">D</button>
       </div>
+      <div id="room-actions">
+        <button class="room-action-btn" id="ra-fight"  onclick="doFight()"  title="Fight (F)"        disabled>F</button>
+        <button class="room-action-btn" id="ra-run"    onclick="doRun()"    title="Run / Flee (R)"   disabled>R</button>
+        <button class="room-action-btn" id="ra-pickup" onclick="doPickup()" title="Pick up (P)"      disabled>P</button>
+        <button class="room-action-btn" id="ra-eat"    onclick="doEat()"    title="Consume food (C)" disabled>C</button>
+        <button class="room-action-btn" id="ra-magic"  onclick="doMagic()"  title="Use amulet (M)"   disabled>M</button>
+        <button class="room-action-btn" id="ra-search" onclick="doSearch()" title="Search room (X)"  disabled>X</button>
+      </div>
     </div>
 
     <!-- Map -->
@@ -1106,8 +1139,10 @@ function initState() {
     strength: 100,    // STRENGTH=100
     wealth: 75,       // WEALTH=75
     food: 0,          // FOOD=0
-    tally: 0,         // TALLY=0
+    tally: 0,         // TALLY=0 — rooms visited with torch
+    darkTally: 0,     // rooms visited without torch (worth 5pts each vs 3pts)
     mk: 0,            // MK=0 monsters killed
+    monsterScore: 0,  // accumulated monster kill points (FF-weighted)
     light: false,     // LIGHT=0
     axe: false,       // AXE=0
     sword: false,     // SWORD=0
@@ -1119,6 +1154,7 @@ function initState() {
     won: false,
     inBattle: false,
     room3searched: false,  // true once player discovers the hidden door in room 3
+    seen: {},              // rooms actually seen with a light source — drives map fog-of-war
   };
 
   // ALLOT TREASURE — 4 random rooms (lines 2850-2890)
@@ -1225,17 +1261,32 @@ function updateRoomName() {
 
 function updateActionButtons() {
   const k = G.roomContents[G.room];
-  const hasMonster  = k !== undefined && k < 0;
-  // Treasure: original uses K>9 (value > 9) to distinguish from monsters
-  const hasTreasure = k !== undefined && k > 9;
-  const hasFood     = G.foodRooms && !!G.foodRooms[G.room];
+  const hasMonster    = k !== undefined && k < 0;
+  const hasTreasure   = k !== undefined && k > 9;
+  const hasFood       = G.foodRooms && !!G.foodRooms[G.room];
   const hasGuardTorch = G.room === 13 && G.guardTorch && !G.light;
+  const canSearch     = G.strength > 5;
 
+  // Side panel buttons
   document.getElementById('btn-fight').disabled  = !hasMonster || G.inBattle;
   document.getElementById('btn-run').disabled    = !hasMonster || G.inBattle;
   document.getElementById('btn-pickup').disabled = !hasTreasure && !hasFood && !hasGuardTorch;
   document.getElementById('btn-eat').disabled    = G.food <= 0;
   document.getElementById('btn-magic').disabled  = !G.amulet;
+
+  // Room-section action buttons — same logic, with active highlight
+  function syncRa(id, disabled, active) {
+    const b = document.getElementById(id);
+    if (!b) return;
+    b.disabled = disabled;
+    b.classList.toggle('room-action-active', !!active && !disabled);
+  }
+  syncRa('ra-fight',  !hasMonster || G.inBattle,               hasMonster);
+  syncRa('ra-run',    !hasMonster || G.inBattle,               hasMonster);
+  syncRa('ra-pickup', !hasTreasure && !hasFood && !hasGuardTorch, hasTreasure || hasFood || hasGuardTorch);
+  syncRa('ra-eat',    G.food <= 0,                             G.food > 0);
+  syncRa('ra-magic',  !G.amulet,                               G.amulet);
+  syncRa('ra-search', !canSearch,                              false);
 }
 
 // ══════════════════════════════════════════════
@@ -1403,8 +1454,8 @@ function renderMap() {
   }
 
   function roomState(id) {
-    if (G.room === id) return 'current';
-    if (G.visited[id]) return 'visited';
+    if (G.room === id && G.light) return 'current';
+    if (G.seen[id]) return 'visited';
     return 'unvisited';
   }
   function clsFor(s) {
@@ -1545,7 +1596,7 @@ function fullRefresh() {
   updateExits();
   updateRoomName();
   updateActionButtons();
-  renderMap();
+  if (G.light) renderMap();
 }
 
 // ══════════════════════════════════════════════
@@ -1568,6 +1619,7 @@ function enterRoom(r) {
   G.room = r;
   const firstVisit = !G.visited[r];
   G.visited[r] = true;
+  if (G.light) G.seen[r] = true;
   G.inBattle = false;
 
   // WIN: reaching room 11 (line 40: IF RO <> 11 THEN 30)
@@ -1590,8 +1642,8 @@ function enterRoom(r) {
     return;
   }
 
-  // TALLY increments each turn (line 200)
-  G.tally++;
+  // TALLY increments each turn — dark rooms worth more (line 200)
+  if (G.light) G.tally++; else G.darkTally++;
 
   // Special: lift room 9
   if (r === 9) {
@@ -1601,8 +1653,9 @@ function enterRoom(r) {
     setTimeout(() => {
       G.room = 10;
       G.visited[10] = true;
+      if (G.light) G.seen[10] = true;
       G.strength -= 5;
-      G.tally++;
+      if (G.light) G.tally++; else G.darkTally++;
       logSep();
       describeRoom(10);
       fullRefresh();
@@ -2022,10 +2075,15 @@ function pickFlavour() { return FLAVOUR[Math.floor(Math.random() * FLAVOUR.lengt
 // ── Win ──
 function resolveWin() {
   _F.active = false; fClearTimers();
-  G.mk++; delete G.roomContents[G.room];
+  G.mk++;
+  delete G.roomContents[G.room];
+  // Monster score: 30 × (FF / 5) — scales with danger level
+  const ffLevel = MONSTERS[String(_F.roomKey)] ? MONSTERS[String(_F.roomKey)][1] : 5;
+  const killPts = 30 * Math.round(ffLevel / 5);
+  G.monsterScore += killPts;
   flogSep();
   flog('you managed to kill the ' + _F.monsterName.toLowerCase() + '!', 'alert');
-  flog('monsters killed: ' + G.mk, 'dim');
+  flog('+' + killPts + ' points  (monsters killed: ' + G.mk + ')', 'dim');
   if (_F.roomKey === -4 && !G.amulet) {
     G.amulet = true;
     flog('a magic amulet rolls from its hoard to your feet.', 'alert');
@@ -2153,6 +2211,7 @@ function doPickup() {
   if (G.room === 13 && G.guardTorch && !G.light) {
     G.light = true;
     G.guardTorch = false;
+    G.seen[13] = true;
     log("you take the guard's torch from the wall. it still burns!", 'alert');
     logSep();
     describeRoom(13);
@@ -2234,8 +2293,9 @@ function doMagic() {
     log("the amulet blazes with light. the mirror ripples like water...", 'alert');
     G.room = 20;
     G.visited[20] = true;
+    if (G.light) G.seen[20] = true;
     G.strength -= 5;
-    G.tally++;
+    if (G.light) G.tally++; else G.darkTally++;
     fullRefresh();
     setTimeout(() => {
       logSep();
@@ -2253,8 +2313,9 @@ function doMagic() {
   // Set G.room immediately so all UI and input is in sync from this moment
   G.room = dest;
   G.visited[dest] = true;
+  if (G.light) G.seen[dest] = true;
   G.strength -= 5;
-  G.tally++;
+  if (G.light) G.tally++; else G.darkTally++;
   log("the amulet flares with light... you are transported!", 'alert');
   fullRefresh();
   if (G.strength < 10 && G.strength > 0) {
@@ -2328,6 +2389,7 @@ function buyItem(key, cost) {
   log(`you purchase ${names[key]}. wealth: $${G.wealth}.`, 'dim');
   hideOverlay(); fullRefresh();
   if (key === 'light') {
+    G.seen[G.room] = true;
     logSep();
     describeRoom(G.room);
   }
@@ -2364,22 +2426,53 @@ function confirmBuyFood() {
 // SCORE & TALLY — line 130
 // Score = 3*TALLY + 5*STRENGTH + 2*WEALTH + FOOD + 30*MK
 // ══════════════════════════════════════════════
+function equipmentScore() {
+  // 50% of purchase price for each item carried
+  return (G.light ? 7 : 0)    // torch $15 → 7pts
+       + (G.axe   ? 5 : 0)    // axe $10 → 5pts
+       + (G.sword ? 10 : 0)   // sword $20 → 10pts
+       + (G.amulet? 15 : 0)   // amulet $30 → 15pts
+       + (G.suit  ? 25 : 0);  // armor $50 → 25pts
+}
+
 function calcScore() {
-  return 3*G.tally + 5*G.strength + 2*G.wealth + G.food + 30*G.mk;
+  return 3  * G.tally          // lit exploration: 3pts per room
+       + 5  * G.darkTally      // dark exploration: 5pts per room
+       + 5  * G.strength       // remaining strength
+       + 2  * G.wealth         // treasure collected
+       + G.food                // food carried
+       + G.monsterScore        // FF-weighted monster kills
+       + equipmentScore();     // equipment carried out
 }
 
 // ══════════════════════════════════════════════
-// SEARCH — reveals hidden door in room 3
+// SEARCH — costs 5 strength; reveals hidden door in room 3;
+//          20% chance of finding treasure in the dark
 // ══════════════════════════════════════════════
 function doSearch() {
   if (G.dead || G.won) return;
 
+  // Searching costs 5 strength
+  if (G.strength <= 5) {
+    log("you are too weak to search.", 'dim');
+    return;
+  }
+  G.strength -= 5;
+
+  // Check for death from exertion
+  if (G.strength < 1) {
+    G.strength = 0;
+    fullRefresh();
+    setTimeout(() => triggerDeath(), 400);
+    return;
+  }
+
+  // Hidden door in room 3
   if (G.room === 3) {
     if (G.room3searched) {
       log("you have already found the hidden door behind the throne.", 'dim');
     } else {
       G.room3searched = true;
-      // Reveal the north exit (room 4)
       log("you move carefully around the great throne...", 'dim');
       setTimeout(() => {
         log("behind the throne, set into the wall, is a hidden door.", 'alert');
@@ -2387,16 +2480,48 @@ function doSearch() {
         fullRefresh();
       }, 600);
     }
+    fullRefresh();
+    return;
+  }
+
+  // Dark treasure search — 20% chance if no torch and treasure is present
+  const k = G.roomContents[G.room];
+  if (!G.light && k !== undefined && k >= 10) {
+    if (Math.random() < 0.20) {
+      G.wealth += k;
+      delete G.roomContents[G.room];
+      log("you grope around in the darkness...", 'dim');
+      setTimeout(() => {
+        log("your hands close on something. you have found the treasure!", 'alert');
+        log(`wealth is now $${G.wealth}.`, 'alert');
+        fullRefresh();
+      }, 500);
+    } else {
+      log("you search carefully in the dark but find nothing.", 'dim');
+    }
+    fullRefresh();
     return;
   }
 
   log("you search the room carefully, but find nothing of note.", 'dim');
+  fullRefresh();
 }
 
 function doTally() {
   logSep();
   log(`your score is ${calcScore()}.`, 'alert');
-  log(`  tally: ${G.tally}  strength: ${G.strength}  wealth: $${G.wealth}  food: ${G.food}  monsters: ${G.mk}`, 'dim');
+  log(`  exploration (lit): ${G.tally} rooms × 3 = ${3*G.tally}`, 'dim');
+  if (G.darkTally > 0)
+    log(`  exploration (dark): ${G.darkTally} rooms × 5 = ${5*G.darkTally}`, 'dim');
+  log(`  strength: ${G.strength} × 5 = ${5*G.strength}`, 'dim');
+  log(`  wealth: $${G.wealth} × 2 = ${2*G.wealth}`, 'dim');
+  if (G.food > 0)
+    log(`  food: ${G.food}`, 'dim');
+  if (G.monsterScore > 0)
+    log(`  monsters: ${G.monsterScore} (${G.mk} killed)`, 'dim');
+  const eq = equipmentScore();
+  if (eq > 0)
+    log(`  equipment: ${eq}`, 'dim');
 }
 
 // ══════════════════════════════════════════════
@@ -2471,8 +2596,10 @@ function triggerDeath() {
       <div style="color:var(--dim)">so sorry.</div>
       <div class="score" style="margin-top:16px">score: ${calcScore()}</div>
       <div style="margin-top:6px;font-size:11px;color:var(--dim)">
-        tally: ${G.tally} &nbsp;·&nbsp; strength: ${G.strength} &nbsp;·&nbsp;
-        wealth: $${G.wealth} &nbsp;·&nbsp; food: ${G.food} &nbsp;·&nbsp; monsters: ${G.mk}
+        exploration: ${G.tally} lit + ${G.darkTally} dark &nbsp;·&nbsp;
+        strength: ${G.strength} &nbsp;·&nbsp; wealth: $${G.wealth} &nbsp;·&nbsp;
+        food: ${G.food} &nbsp;·&nbsp; monsters: ${G.mk} (${G.monsterScore}pts) &nbsp;·&nbsp;
+        equipment: ${equipmentScore()}pts
       </div>`;
     renderScores(entry);
   }, 1200);
@@ -2501,8 +2628,10 @@ function triggerWin() {
       <div style="margin-top:6px">you managed to get out of the castle.</div>
       <div class="score" style="margin-top:16px">score: ${calcScore()}</div>
       <div style="margin-top:6px;font-size:11px;color:var(--dim)">
-        tally: ${G.tally} &nbsp;·&nbsp; strength: ${G.strength} &nbsp;·&nbsp;
-        wealth: $${G.wealth} &nbsp;·&nbsp; food: ${G.food} &nbsp;·&nbsp; monsters: ${G.mk}
+        exploration: ${G.tally} lit + ${G.darkTally} dark &nbsp;·&nbsp;
+        strength: ${G.strength} &nbsp;·&nbsp; wealth: $${G.wealth} &nbsp;·&nbsp;
+        food: ${G.food} &nbsp;·&nbsp; monsters: ${G.mk} (${G.monsterScore}pts) &nbsp;·&nbsp;
+        equipment: ${equipmentScore()}pts
       </div>`;
     renderScores(entry);
   }, 2500);
@@ -2537,7 +2666,8 @@ function startGame() {
   setTimeout(() => {
     G.room = 6;
     G.visited[6] = true;
-    G.tally++;
+    if (G.light) G.seen[6] = true;
+    if (G.light) G.tally++; else G.darkTally++;
     logSep();
     describeRoom(6);
     fullRefresh();

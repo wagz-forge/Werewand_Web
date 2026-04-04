@@ -2937,6 +2937,8 @@ function startGame() {
 function restartGame() {
   document.getElementById('end-screen').classList.remove('visible');
   document.getElementById('log').innerHTML = '';
+  document.getElementById('ascii-map').innerHTML = '';
+  document.getElementById('map-legend').textContent = '';
   hideOverlay();
   document.getElementById('title-screen').style.display = '';
 }

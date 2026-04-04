@@ -970,33 +970,31 @@ const ROOM_DESC = [
   () => {
     const lines = [
       "you are in the foyer. vaulted ceilings stretch up into shadow above you.",
-      "faded tapestries hang on the walls, their colours long since drained away.",
+      "faded tapestries hang on the walls, their colors long since drained away.",
     ];
-    if (Math.random() > 0.4) lines.push("a thick layer of dust covers the floor. no-one has walked here for a long, long time.");
+    if (Math.random() > 0.4) lines.push("a thick layer of dust covers the floor. no one has walked here for a long, long time.");
     lines.push("a door to the south leads deeper into the castle.");
-    lines.push("to the north, a heavy locked door is set into the wall. it will not budge — it may lead to a drawing room, but whatever lies beyond is sealed from you.");
+    lines.push("to the north, a heavy locked door is set into the wall. it will not budge.");
     return lines;
   },
   // 2 audience chamber
   () => {
     const lines = ["this is the audience chamber."];
-    if (Math.random() > 0.4) lines.push("the faded tapestries on the wall only hint at the splendor which this room once had.");
-    lines.push("a door to the north returns to the foyer.");
-    lines.push("a door to the south leads to the gallery.");
-    lines.push("to the east, a doorway leads to the great hall.");
+    if (Math.random() > 0.4) lines.push("the faded tapestries on the wall only hint at the splendor this room once had.");
+    lines.push("there is a door to the north, one to the south, and a doorway to the east.");
     return lines;
   },
   // 3 great hall
   () => {
     const lines = [
       "you are in the great hall. the ceiling soars high above, and tall windows line the south wall, looking out over the lake.",
-      "a large table dominates the centre of the room. at the far north end, a plain wooden throne sits on a raised platform.",
+      "a large table dominates the center of the room. at the far north end, a plain wooden throne sits on a raised platform.",
     ];
     if (Math.random() > 0.4) lines.push("as you stand there, you hear a mouse scamper along the floor behind you... you whirl around... but see nothing!");
     if (G.room3searched) {
       lines.push("behind the throne, a hidden door stands open to the north.");
     } else {
-      lines.push("a balcony runs along the upper part of the east wall. a doorway to the east leads to the inner hall.");
+      lines.push("a balcony runs along the upper part of the east wall. a doorway to the east leads onward.");
     }
     return lines;
   },
@@ -1010,11 +1008,11 @@ const ROOM_DESC = [
   // 5 inner hall
   () => {
     const lines = [
-      "this is the inner hall. a circular stairwell passes through the room, and a door to the north leads back toward the great hall.",
-      "windows in the east wall overlook a courtyard. across the courtyard you can see the rear vestibule — a possible exit from this wretched place.",
+      "this is the inner hall. a circular stairwell passes through the room, and a door to the north leads back the way you came.",
+      "windows in the east wall overlook a courtyard. across the courtyard you can see what looks like a possible exit from this wretched place.",
       "unfortunately, you see no other way into that courtyard.",
     ];
-    if (Math.random() > 0.6) lines.push("the room is small, and unfriendly.");
+    if (Math.random() > 0.6) lines.push("the room is narrow and unfriendly.");
     return lines;
   },
   // 6 entrance
@@ -1039,11 +1037,11 @@ const ROOM_DESC = [
   () => {
     const lines = [
       "you are in the rear vestibule.",
-      "there are windows to the south from which you can see the ornamental lake.",
+      "through the windows to the south you can see the stables.",
       "there is an exit to the east and one to the north.",
     ];
     if (G.room10searched) {
-      lines.push("the wrought iron gate to the west stands open, leading to the courtyard.");
+      lines.push("the wrought iron gate to the west stands open, leading out to the courtyard.");
     }
     return lines;
   },
@@ -1055,9 +1053,9 @@ const ROOM_DESC = [
       "you are in the dank, dark dungeon.",
       "there is a single exit, a small hole in the wall towards the west.",
     ];
-    if (Math.random() > 0.4) lines.push("...a hollow, dry chuckle is heard from the guard room....");
+    if (Math.random() > 0.4) lines.push("...a hollow, dry chuckle is heard from somewhere nearby....");
     if (G.room12searched) {
-      lines.push("a small hole in the east wall leads to the courtyard.");
+      lines.push("a small hole in the east wall seems to lead up to the courtyard.");
     }
     return lines;
   },
@@ -1070,10 +1068,9 @@ const ROOM_DESC = [
   // 14 master bedroom
   () => [
     "you are in the master bedroom — a massive chamber on the upper level.",
-    "to the west, a wall of windows overlooks the front of the castle. the entrance is visible far below.",
-    "to the north, another wall of windows frames the herb garden.",
+    "to the west, a wall of windows overlooks the front of the castle. the entrance can be seen far below.",
     "two cold fireplaces flank the room, unused for many years.",
-    "a door to the east leads to the dressing chamber. a door to the south leads to the upper hall.",
+    "there is a door to the east and a door to the south.",
   ],
   // 15 upper hall
   () => {
@@ -1082,30 +1079,26 @@ const ROOM_DESC = [
     lines.push("the west side of the hall opens onto a balcony that overlooks the great hall below.");
     lines.push("windows to the east look out over the courtyard.");
     lines.push("a small south-facing window shows the lake glimmering in the moonlight.");
-    lines.push("two large doors to the north lead to the master bedroom. a stairwell descends to the ground floor.");
+    lines.push("two large doors to the north lead onward. a stairwell descends to the ground floor.");
     return lines;
   },
   // 16 treasury
   () => {
-    const lines = ["this room was used as the castle treasury in by-gone years...."];
+    const lines = ["this room was used as the castle treasury in bygone years...."];
     if (Math.random() > 0.4) lines.push("...a spider scampers down the wall........");
     lines.push("there are no windows, just exits.");
     return lines;
   },
   // 17 chambermaids' bedroom
-  () => {
-    const lines = [
-      "ooooh... you are in the chambermaids' bedroom.",
-      "faint perfume still hangs in the air...",
-      "a window to the north overlooks the herb garden.",
-      "a door to the south leads down to the treasury. a door to the west leads to the dressing chamber.",
-    ];
-    return lines;
-  },
+  () => [
+    "ooooh... you are in the chambermaids' bedroom.",
+    "faint perfume still hangs in the air...",
+    "there is a door to the south and a door to the west.",
+  ],
   // 18 dressing chamber
   () => {
     const lines = [
-      "this is the dressing chamber, nestled between the master bedroom to the west and the chambermaids' room to the east.",
+      "this is the dressing chamber, nestled between two other rooms.",
       "a window to the south overlooks the courtyard.",
     ];
     if (Math.random() > 0.5) lines.push("wisps of fog drift over the lake beyond the courtyard wall, giving it an eerie glow in the moonlight.");
@@ -1136,24 +1129,23 @@ const ROOM_DESC = [
   // 21 gallery
   () => {
     const lines = [
-      "you are in the gallery. tall windows on the south wall look out over the grounds and the ornamental lake.",
-      "many worn and faded paintings adorn the walls, their subjects now unrecognisable.",
-      "a large, threadbare rug covers the centre of the floor.",
+      "you are in the gallery. tall windows on the south wall look out over the grounds and the lake.",
+      "many worn and faded paintings adorn the walls, their subjects now unrecognizable.",
+      "a large, threadbare rug covers the center of the floor.",
       "from a window to the west, you can see the entrance to the castle — and you begin to wonder if coming here was a mistake.",
-      "a door to the north returns to the audience chamber.",
+      "there is a door to the north.",
     ];
     if (G.room21searched) {
-      lines.push("a pull-down hatch is visible in the ceiling. a ladder leads up to the attic.");
+      lines.push("a pull-down hatch is visible in the ceiling. a ladder leads up to the space above.");
     }
     return lines;
   },
   // 22 lounge
   () => [
-    "you are in the lounge.",
-    "worn leather armchairs and a sagging sofa are arranged around a cold fireplace.",
+    "you are in the lounge. worn leather armchairs and a sagging sofa are arranged around a cold fireplace.",
     "bookshelves line the walls, their volumes thick with dust.",
     "through a window to the west you can see the entrance to the castle.",
-    "a door to the east leads to the dining room.",
+    "there is a door to the east.",
   ],
   // 23 dining room
   () => [
@@ -1161,8 +1153,7 @@ const ROOM_DESC = [
     "a vast ornate table dominates the room, still laid with place settings for a banquet that never came.",
     "tarnished silverware and cracked china line the table in eerie silence.",
     "windows to the north look out over the herb garden.",
-    "a door to the west leads back to the lounge.",
-    "there is a door to the south that leads to the kitchen, but it is locked fast and will not yield.",
+    "there is a door to the west. a door to the south is locked fast and will not yield.",
   ],
   // 24 stables
   () => {
@@ -1177,12 +1168,12 @@ const ROOM_DESC = [
   () => {
     const lines = [
       "you step into a large open courtyard.",
-      "a stone fountain stands at the centre, dry and cracked, with a weathered figure at its top.",
+      "a stone fountain stands at the center, dry and cracked, with a weathered figure at its top.",
       "sculptures line the walls, half-obscured by creeping ivy.",
       "decorative trees and carefully shaped topiaries frame a winding gravel path.",
     ];
     if (Math.random() > 0.5) lines.push("the gravel crunches loudly underfoot — you feel exposed out here.");
-    lines.push("to the east, a gate leads to the rear vestibule and what appears to be a way out of the castle.");
+    lines.push("to the east, a gate leads toward what appears to be a way out of the castle.");
     lines.push("to the south, a large metal gate beneath the rampart looks out over the grounds and the lake.");
     if (G.room25searched) {
       lines.push("a small hole in the base of the north wall leads down to the dungeon.");
@@ -1201,7 +1192,7 @@ const ROOM_DESC = [
     } else {
       lines.push("a large chest sits against the far wall, its lid hanging open and empty.");
     }
-    lines.push("a ladder leads down through a hatch to the gallery below.");
+    lines.push("a ladder leads down through a hatch in the floor.");
     return lines;
   },
 ];
@@ -2255,6 +2246,11 @@ function resolveWin() {
   } else {
     flog('+' + killPts + ' points  (monsters killed: ' + G.mk + ')', 'dim');
   }
+
+  // Zero out the threat bar now the monster is dead
+  _F.ff = 0;
+  updateThreatBar();
+
   if (_F.roomKey === -4 && !G.amulet) {
     G.amulet = true;
     flog('a magic amulet rolls from its hoard to your feet.', 'alert');

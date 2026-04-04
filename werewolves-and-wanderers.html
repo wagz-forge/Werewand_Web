@@ -2126,10 +2126,14 @@ function playerAttack(weapon) {
 // ── Eat food ──
 function playerEat() {
   if (!_F.active || G.food <= 0) return;
+  if (G.strength >= 104) {
+    flog('you are already at full strength.', 'dim');
+    return;
+  }
   _F.cooldowns.eat = Date.now() + 3000;
   animateCooldown('fab-eat', 'cd-eat', 3000);
   G.food -= 1;
-  G.strength = Math.floor(G.strength + 5);
+  G.strength = Math.min(Math.floor(G.strength + 5), 104);
   flog('you eat a unit of food. strength: ' + G.strength + '.', 'dim');
   updateFightHp();
 }
@@ -2445,10 +2449,15 @@ function confirmEat() {
   hideOverlay();
   if (!val || val <= 0) return;
   if (val > G.food) { log("that is more than you have.", 'dim'); return; }
-  // Line 2550-2560: FOOD -= Z; STRENGTH += 5*Z
+  if (G.strength >= 104) { log("you are already at full strength.", 'dim'); return; }
+  // Line 2550-2560: FOOD -= Z; STRENGTH += 5*Z — capped at 104
   G.food = Math.floor(G.food - val);
-  G.strength = Math.floor(G.strength + 5 * val);
+  const gained = Math.min(5 * val, 104 - G.strength);
+  G.strength = G.strength + gained;
   log(`you eat ${val} unit${val>1?'s':''} of food. strength is now ${G.strength}.`, 'dim');
+  if (G.strength === 104 && gained < 5 * val) {
+    log("you feel as strong as you can.", 'dim');
+  }
   fullRefresh();
 }
 

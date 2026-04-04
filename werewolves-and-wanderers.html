@@ -1921,7 +1921,7 @@ function go(dir) {
 const WEAPONS = {
   axe:   { cd: 3200, label: 'axe',        reduce: (ff) => 4 * Math.floor(ff / 5) },
   sword: { cd: 2000, label: 'sword',      reduce: (ff) => 3 * Math.floor(ff / 4) },
-  fists: { cd: 1400, label: 'bare hands', reduce: (ff) => Math.floor(ff + ff / 5) },
+  fists: { cd: 1400, label: 'bare hands', reduce: (ff) => Math.floor(ff * 9 / 10) },
 };
 
 let _F = {};          // current fight state
@@ -2119,8 +2119,8 @@ function playerAttack(weapon) {
   updateThreatBar();
   if (Math.random() > 0.65) flog(pickFlavour(), 'danger');
 
-  // Check if this strike finishes the fight
-  if (Math.random() * 16 > _F.ff) resolveWin();
+  // Win check — only once the monster has been significantly weakened (ff < 50% of start)
+  if (_F.ff < _F.maxFf * 0.5 && Math.random() * 16 > _F.ff) resolveWin();
 }
 
 // ── Eat food ──

@@ -1240,6 +1240,7 @@ function initState() {
     room20searched: false,  // true once player searches the herb garden
     room21searched: false,  // true once player finds the attic hatch in the gallery
     room25searched: false,  // true once player finds the dungeon hole in the courtyard
+    amuletUses: 3,          // uses remaining before the amulet crumbles
     seen: {},               // rooms actually seen with a light source — drives map fog-of-war
   };
 
@@ -1324,7 +1325,7 @@ function updateInventory() {
   if (G.light) items.push('flaming torch');
   if (G.axe)   items.push('axe');
   if (G.sword) items.push('sword');
-  if (G.amulet)items.push('magic amulet');
+  if (G.amulet)items.push(`magic amulet (${G.amuletUses} use${G.amuletUses !== 1 ? 's' : ''} left)`);
   if (G.suit)  items.push('suit of armor');
   const el = document.getElementById('inventory-list');
   el.innerHTML = items.length === 0
@@ -2257,6 +2258,7 @@ function resolveWin() {
 
   if (_F.roomKey === -4 && !G.amulet) {
     G.amulet = true;
+    G.amuletUses = 3;
     flog('a magic amulet rolls from its hoard to your feet.', 'alert');
   }
   disableAllFightBtns();
@@ -2469,6 +2471,10 @@ function doMagic() {
   if (G.dead || G.won) return;
   if (!G.amulet) { log("you have no amulet.", 'dim'); return; }
 
+  // Decrement uses — amulet crumbles after the third use
+  G.amuletUses--;
+  const lastUse = G.amuletUses <= 0;
+
   // Special: in the dressing chamber (18), the mirror reacts to the amulet
   if (G.room === 18) {
     log("the amulet blazes with light. the mirror ripples like water...", 'alert');
@@ -2477,6 +2483,13 @@ function doMagic() {
     if (G.light) G.seen[20] = true;
     G.strength -= 5;
     if (G.light) G.tally++; else G.darkTally++;
+    if (lastUse) {
+      G.amulet = false;
+      setTimeout(() => {
+        log("the amulet cracks and crumbles in your hand. it is gone.", 'danger');
+        fullRefresh();
+      }, 500);
+    }
     fullRefresh();
     setTimeout(() => {
       logSep();
@@ -2491,13 +2504,22 @@ function doMagic() {
   do { dest = Math.floor(Math.random() * 19) + 1; }
   while (dest === 6 || dest === 9 || dest === 11);
 
-  // Set G.room immediately so all UI and input is in sync from this moment
   G.room = dest;
   G.visited[dest] = true;
   if (G.light) G.seen[dest] = true;
   G.strength -= 5;
   if (G.light) G.tally++; else G.darkTally++;
-  log("the amulet flares with light... you are transported!", 'alert');
+
+  if (G.amuletUses === 2) {
+    log("the amulet flares with light... you are transported!", 'alert');
+    log("the amulet feels slightly warm to the touch.", 'dim');
+  } else if (G.amuletUses === 1) {
+    log("the amulet flares with light... you are transported!", 'alert');
+    log("the amulet is hot and vibrating in your hand.", 'dim');
+  } else {
+    log("the amulet blazes with intense light... you are transported!", 'alert');
+  }
+
   fullRefresh();
   if (G.strength < 10 && G.strength > 0) {
     log("warning — your strength is running low.", 'alert');
@@ -2510,6 +2532,13 @@ function doMagic() {
   setTimeout(() => {
     logSep();
     describeRoom(dest);
+    if (lastUse) {
+      G.amulet = false;
+      setTimeout(() => {
+        log("the amulet cracks and crumbles in your hand. it is gone.", 'danger');
+        fullRefresh();
+      }, 400);
+    }
     fullRefresh();
   }, 300);
 }
@@ -2557,6 +2586,7 @@ function doShop() {
 function buyItem(key, cost) {
   if (G[key]) return;
   G[key] = true;
+  if (key === 'amulet') G.amuletUses = 3;
   G.wealth -= cost;
   // Line 3190: if wealth goes negative, punish cheating
   if (G.wealth < 0) {

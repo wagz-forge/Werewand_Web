@@ -2452,12 +2452,21 @@ function confirmEat() {
   if (!val || val <= 0) return;
   if (val > G.food) { log("that is more than you have.", 'dim'); return; }
   if (G.strength >= 104) { log("you are already at full strength.", 'dim'); return; }
-  // Line 2550-2560: FOOD -= Z; STRENGTH += 5*Z — capped at 104
-  G.food = Math.floor(G.food - val);
-  const gained = Math.min(5 * val, 104 - G.strength);
-  G.strength = G.strength + gained;
-  log(`you eat ${val} unit${val>1?'s':''} of food. strength is now ${G.strength}.`, 'dim');
-  if (G.strength === 104 && gained < 5 * val) {
+
+  // Only consume as many units as needed to reach the cap
+  const canGain  = 104 - G.strength;          // max strength gain possible
+  const unitsNeeded = Math.ceil(canGain / 5);  // units required to cover that gain
+  const unitsEaten  = Math.min(val, unitsNeeded);
+  const gained      = Math.min(5 * unitsEaten, canGain);
+
+  G.food     -= unitsEaten;
+  G.strength += gained;
+
+  log(`you eat ${unitsEaten} unit${unitsEaten > 1 ? 's' : ''} of food. strength is now ${G.strength}.`, 'dim');
+  if (unitsEaten < val) {
+    log(`you stop eating — you can carry no more strength. ${val - unitsEaten} unit${val - unitsEaten > 1 ? 's' : ''} remain.`, 'dim');
+  }
+  if (G.strength === 104) {
     log("you feel as strong as you can.", 'dim');
   }
   fullRefresh();
